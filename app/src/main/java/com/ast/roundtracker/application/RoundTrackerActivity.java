@@ -1,9 +1,13 @@
-package com.ast.roundtracker.roundtracker.application;
+package com.ast.roundtracker.application;
 
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,9 +18,9 @@ import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 
-import com.ast.roundtracker.roundtracker.R;
-import com.ast.roundtracker.roundtracker.model.LedgerEntry;
-import com.ast.roundtracker.roundtracker.model.User;
+import com.ast.roundtracker.R;
+import com.ast.roundtracker.model.LedgerEntry;
+import com.ast.roundtracker.model.User;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -38,6 +42,7 @@ public class RoundTrackerActivity extends AppCompatActivity {
 
     private List<LedgerEntry> ledgerEntries;
     private List<User> users;
+    private LinearLayout mainLayout;
     private LinearLayout creditList;
     private LinearLayout debtList;
     private Spinner purchaserSelector;
@@ -49,6 +54,8 @@ public class RoundTrackerActivity extends AppCompatActivity {
     private DatabaseReference ledgerEntriesTable;
     private ChildEventListener ledgerEntriesEventListener;
 
+    private LinearLayout creditScoreLayout;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,10 +66,8 @@ public class RoundTrackerActivity extends AppCompatActivity {
         ledgerEntries = new ArrayList();
         ledgerEntriesTable = database.getReference("ledgers/"+LEDGER+"/ledger");
 
-        findScreenElements();
-        setPurchaserSelector();
-        setRecipientSelector();
-        addListeners();
+        showRoundTracker();
+
     }
 
     @Override
@@ -75,6 +80,53 @@ public class RoundTrackerActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         removeDbListeners();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_round_tracker, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.action_round_tracker) {
+            setContentView(R.layout.activity_round_tracker);
+            showRoundTracker();
+            return true;
+        } else if (id == R.id.action_credit_score) {
+            setContentView(R.layout.activity_credit_score);
+            showCreditScore();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    public void showRoundTracker() {
+        findRoundTrackerScreenElements();
+        setPurchaserSelector();
+        setRecipientSelector();
+        addListeners();
+        displayUserData();
+    }
+
+    public void showCreditScore() {
+        findCreditScoreScreenElements();
+        displayCreditScoreData();
+    }
+
+    private void findRoundTrackerScreenElements() {
+        creditList = (LinearLayout) findViewById(R.id.credit_list);
+        debtList = (LinearLayout) findViewById(R.id.debt_list);
+        addToLedgerButton = (Button) findViewById(R.id.add_to_ledger_button);
+        purchaserSelector = (Spinner) findViewById(R.id.purchaser_selector);
+        recipientSelector = (Spinner) findViewById(R.id.recipient_selector);
+        mainLayout = (LinearLayout) findViewById(R.id.main_layout);
+    }
+
+    private void findCreditScoreScreenElements() {
+        creditScoreLayout = (LinearLayout) findViewById(R.id.credit_score_layout);
     }
 
     public void addListeners() {
@@ -101,18 +153,7 @@ public class RoundTrackerActivity extends AppCompatActivity {
                         updateUserBalance(ledgerEntry.getPurchaserUserId(), -ledgerEntry.getVolume());
                         updateUserBalance(ledgerEntry.getRecipientUserId(), ledgerEntry.getVolume());
 
-                        for (int i = 0; i < users.size(); i++) {
-                            String userId = users.get(i).getUserId().substring(1,2);
-                            usersTable.child(userId)
-                                    .child("balance")
-                                    .setValue(users.get(i).getBalance());
-                            usersTable.child(userId)
-                                    .child("totalPurchased")
-                                    .setValue(users.get(i).getTotalPurchased());
-                            usersTable.child(userId)
-                                    .child("totalReceived")
-                                    .setValue(users.get(i).getTotalRecieved());
-                        }
+                        saveBalances();
 
                         displayUserData();
 
@@ -123,6 +164,21 @@ public class RoundTrackerActivity extends AppCompatActivity {
                 return false;
             }
         });
+    }
+
+    private void saveBalances() {
+        for (int i = 0; i < users.size(); i++) {
+            String userId = users.get(i).getUserId().substring(1,2);
+            usersTable.child(userId)
+                    .child("balance")
+                    .setValue(users.get(i).getBalance());
+            usersTable.child(userId)
+                    .child("totalPurchased")
+                    .setValue(users.get(i).getTotalPurchased());
+            usersTable.child(userId)
+                    .child("totalReceived")
+                    .setValue(users.get(i).getTotalReceived());
+        }
     }
 
     private void resetBalances() {
@@ -139,19 +195,12 @@ public class RoundTrackerActivity extends AppCompatActivity {
         }
     }
 
-    private void findScreenElements() {
-        creditList = (LinearLayout) findViewById(R.id.credit_list);
-        debtList = (LinearLayout) findViewById(R.id.debt_list);
-        addToLedgerButton = (Button) findViewById(R.id.add_to_ledger_button);
-        purchaserSelector = (Spinner) findViewById(R.id.purchaser_selector);
-        recipientSelector = (Spinner) findViewById(R.id.recipient_selector);
-        progressBar = (ProgressBar) findViewById(R.id.progress_bar);
-    }
-
     private void displayUserData() {
 
         creditList.removeAllViews();
         debtList.removeAllViews();
+
+        boolean balancedLedger = true;
 
         int creditCount = 0;
         Collections.sort(users);
@@ -159,6 +208,7 @@ public class RoundTrackerActivity extends AppCompatActivity {
             if (users.get(i).getBalance() < 0) {
                 addToCreditList(users.get(i).getUserName(), users.get(i).getBalance());
                 creditCount++;
+                balancedLedger = false;
             }
             if (creditCount == 3) {
                 break;
@@ -169,11 +219,55 @@ public class RoundTrackerActivity extends AppCompatActivity {
             if (users.get(i).getBalance() > 0) {
                 addToDebtList(users.get(i).getUserName(), users.get(i).getBalance());
                 debitCount++;
+                balancedLedger = false;
             }
             if (debitCount == 3) {
                 break;
             }
         }
+
+        if(balancedLedger) {
+            try {
+                TextView textView = new TextView(creditList.getContext());
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                textView.setText("The ledger is balanced");
+                textView.setTextSize(19);
+                params.setMargins(50, 0, 0, 15);
+                textView.setTextColor(Color.BLACK);
+                creditList.addView(textView, params);
+
+                TextView textView1 = new TextView(debtList.getContext());
+                LinearLayout.LayoutParams params1 = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                textView1.setText("The ledger is balanced");
+                textView1.setTextSize(19);
+                params1.setMargins(50, 0, 0, 15);
+                textView1.setTextColor(Color.BLACK);
+                debtList.addView(textView1, params1);
+            } catch (Exception ex) {
+
+            }
+        }
+    }
+
+    private void displayCreditScoreData() {
+        int position = 1;
+        for (int i = 0; i < users.size(); i++) {
+            if(users.get(i).getTotalPurchased() > 0 || users.get(i).getTotalReceived() > 0) {
+                addToCreditScoreLayout(position, users.get(i).getUserName(), users.get(i).getTotalPurchased(),
+                        getCreditScore(users.get(i).getTotalPurchased(), users.get(i).getTotalReceived()));
+                position++;
+            }
+        }
+    }
+
+    private long getCreditScore(int totalPurchased, int totalReceived) {
+        Double multiplier = 1.0;
+        if(totalPurchased > 0 && totalReceived > 0) {
+            multiplier = (totalPurchased / totalReceived) * 0.5;
+        }
+        return Math.round(((totalPurchased) + ((totalPurchased - totalReceived)*3)) * multiplier);
     }
 
     private void setPurchaserSelector() {
@@ -209,9 +303,12 @@ public class RoundTrackerActivity extends AppCompatActivity {
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         textView.setText(user + " is owed " + (balance * -1));
-        textView.setTextSize(17);
-        params.setMargins(30, 0, 0, 15);
-        textView.setTextColor(Color.BLACK);
+        textView.setTextSize(19);
+        params.setMargins(50, 0, 0, 15);
+
+        int colourInt = Color.parseColor("#00A329");
+
+        textView.setTextColor(colourInt);
         creditList.addView(textView, params);
     }
 
@@ -221,10 +318,45 @@ public class RoundTrackerActivity extends AppCompatActivity {
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         textView.setText(user + " owes " + balance);
-        textView.setTextSize(17);
-        params.setMargins(30, 0, 0, 15);
-        textView.setTextColor(Color.BLACK);
+        textView.setTextSize(19);
+        params.setMargins(50, 0, 0, 15);
+
+        int colourInt = Color.parseColor("#CC3E16");
+
+        textView.setTextColor(colourInt);
         debtList.addView(textView, params);
+    }
+
+    private void addToCreditScoreLayout(int position, String userName, int totalPurchased, long score) {
+
+        TextView textView0 = new TextView(creditScoreLayout.getContext());
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        textView0.setText(position + ".  " + userName);
+        textView0.setTextSize(20);
+        params.setMargins(50, 8, 0, 8);
+        textView0.setTextColor(Color.BLACK);
+        creditScoreLayout.addView(textView0, params);
+
+        TextView textView1 = new TextView(creditScoreLayout.getContext());
+        LinearLayout.LayoutParams params1 = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        params1.gravity = Gravity.LEFT;
+        textView1.setText("Total purchased:  " + totalPurchased);
+        textView1.setTextSize(18);
+        params1.setMargins(214, 8, 30, 8);
+        textView1.setTextColor(Color.BLACK);
+        creditScoreLayout.addView(textView1, params1);
+
+        TextView textView2 = new TextView(creditScoreLayout.getContext());
+        LinearLayout.LayoutParams params2 = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        params2.gravity = Gravity.LEFT;
+        textView2.setText("Credit score:  " + score);
+        textView2.setTextSize(18);
+        params2.setMargins(280, 8, 30, 24);
+        textView2.setTextColor(Color.BLACK);
+        creditScoreLayout.addView(textView2, params2);
     }
 
     private void updateUserBalance(String userId, int balanceAdjust) {
@@ -232,7 +364,7 @@ public class RoundTrackerActivity extends AppCompatActivity {
             if (users.get(i).getUserId().equals(userId)) {
                 users.get(i).setBalance(users.get(i).getBalance() + balanceAdjust);
                 if(balanceAdjust > 0) {
-                    users.get(i).setTotalRecieved(users.get(i).getTotalRecieved() + 1);
+                    users.get(i).setTotalReceived(users.get(i).getTotalReceived() + 1);
                 } else if(balanceAdjust < 0) {
                     users.get(i).setTotalPurchased(users.get(i).getTotalPurchased() + 1);
                 }
@@ -246,13 +378,16 @@ public class RoundTrackerActivity extends AppCompatActivity {
             if (users.get(i).getUserId().equals(userId)) {
                 users.get(i).setBalance(balance);
                 users.get(i).setTotalPurchased(totalPurchased);
-                users.get(i).setTotalRecieved(totalReceived);
+                users.get(i).setTotalReceived(totalReceived);
                 break;
             }
         }
     }
 
     private void addDbListeners() {
+
+        progressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleSmall);
+        mainLayout.addView(progressBar);
 
         usersEventListener = new ChildEventListener() {
             @Override

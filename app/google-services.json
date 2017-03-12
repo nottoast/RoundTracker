@@ -10,7 +10,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:1023246976993:android:5d0986dbe7a84abf",
         "android_client_info": {
-          "package_name": "com.ast.roundtracker.roundtracker"
+          "package_name": "com.ast.roundtracker"
         }
       },
       "oauth_client": [
@@ -18,7 +18,7 @@
           "client_id": "1023246976993-9ohsbeh4f9plbec5i1meprh7i1rvfpos.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.ast.roundtracker.roundtracker",
+            "package_name": "com.ast.roundtracker",
             "certificate_hash": "9a7075350b8baf6873d9f4f183c20ce26416f1bd"
           }
         },

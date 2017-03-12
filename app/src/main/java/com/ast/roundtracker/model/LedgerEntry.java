@@ -1,4 +1,4 @@
-package com.ast.roundtracker.roundtracker.model;
+package com.ast.roundtracker.model;
 
 import com.google.firebase.database.Exclude;
 import com.google.firebase.database.IgnoreExtraProperties;

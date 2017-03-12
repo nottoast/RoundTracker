@@ -1,0 +1,15 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="com.ast.roundtracker.application.RoundTrackerActivity">
+    <item
+        android:id="@+id/action_round_tracker"
+        android:orderInCategory="100"
+        android:title="@string/action_round_tracker"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_credit_score"
+        android:orderInCategory="200"
+        android:title="@string/action_credit_score"
+        app:showAsAction="never" />
+</menu>

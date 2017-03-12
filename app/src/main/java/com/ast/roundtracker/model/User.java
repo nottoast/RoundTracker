@@ -1,4 +1,4 @@
-package com.ast.roundtracker.roundtracker.model;
+package com.ast.roundtracker.model;
 
 import com.google.firebase.database.IgnoreExtraProperties;
 
@@ -9,18 +9,17 @@ public class User implements Comparable {
     private String userId;
     private int balance;
     private int totalPurchased;
-    private int totalRecieved;
+    private int totalReceived;
 
     public User() {
-
     }
 
-    public User(String userName, String userId, int balance, int totalPurchased, int totalRecieved) {
+    public User(String userName, String userId, int balance, int totalPurchased, int totalReceived) {
         this.userName = userName;
         this.userId = userId;
         this.balance = balance;
         this.totalPurchased = totalPurchased;
-        this.totalRecieved = totalRecieved;
+        this.totalReceived = totalReceived;
     }
 
     public String getUserName() {
@@ -55,12 +54,12 @@ public class User implements Comparable {
         this.totalPurchased = totalPurchased;
     }
 
-    public int getTotalRecieved() {
-        return totalRecieved;
+    public int getTotalReceived() {
+        return totalReceived;
     }
 
-    public void setTotalRecieved(int totalRecieved) {
-        this.totalRecieved = totalRecieved;
+    public void setTotalReceived(int totalReceived) {
+        this.totalReceived = totalReceived;
     }
 
     @Override
