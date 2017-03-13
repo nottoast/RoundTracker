@@ -12,4 +12,14 @@
         android:orderInCategory="200"
         android:title="@string/action_credit_score"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/action_ledger"
+        android:orderInCategory="300"
+        android:title="@string/action_ledger"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_disputes"
+        android:orderInCategory="400"
+        android:title="@string/action_disputes"
+        app:showAsAction="never" />
 </menu>

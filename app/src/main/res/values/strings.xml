@@ -3,6 +3,8 @@
     <string name="title_activity_main">MainActivity</string>
     <string name="action_round_tracker">Add to ledger</string>
     <string name="action_credit_score">Credit score</string>
+    <string name="action_ledger">Ledger</string>
+    <string name="action_disputes">Disputes</string>
     <string name="section_format">Hello World from section: %1$d</string>
     <string name="title_activity_round_tracker">RoundTracker</string>
 </resources>

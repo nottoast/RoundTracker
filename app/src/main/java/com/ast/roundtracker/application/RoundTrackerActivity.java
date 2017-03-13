@@ -28,11 +28,16 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ServerValue;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 public class RoundTrackerActivity extends AppCompatActivity {
 
@@ -45,6 +50,7 @@ public class RoundTrackerActivity extends AppCompatActivity {
     private LinearLayout mainLayout;
     private LinearLayout creditList;
     private LinearLayout debtList;
+    private LinearLayout ledgerLayout;
     private Spinner purchaserSelector;
     private Spinner recipientSelector;
     private Button addToLedgerButton;
@@ -74,6 +80,10 @@ public class RoundTrackerActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         addDbListeners();
+        if(!users.isEmpty()) {
+            calculateAllBalances();
+            saveBalances();
+        }
     }
 
     @Override
@@ -94,10 +104,24 @@ public class RoundTrackerActivity extends AppCompatActivity {
         if (id == R.id.action_round_tracker) {
             setContentView(R.layout.activity_round_tracker);
             showRoundTracker();
+            try {
+                if (progressBar != null) {
+                    ((ViewGroup) progressBar.getParent())
+                            .removeView(progressBar);
+                }
+            } catch(Exception ex) {
+            }
             return true;
         } else if (id == R.id.action_credit_score) {
             setContentView(R.layout.activity_credit_score);
             showCreditScore();
+            return true;
+        } else if (id == R.id.action_ledger) {
+            setContentView(R.layout.activity_ledger);
+            showLedger();
+            return true;
+        } else if (id == R.id.action_disputes) {
+            setContentView(R.layout.activity_disputes);
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -116,6 +140,16 @@ public class RoundTrackerActivity extends AppCompatActivity {
         displayCreditScoreData();
     }
 
+    public void showLedger() {
+        findLedgerScreenElements();
+        displayLedgerData();
+    }
+
+    public void showDisputes() {
+        findDisputeScreenElements();
+        displayDisputeData();
+    }
+
     private void findRoundTrackerScreenElements() {
         creditList = (LinearLayout) findViewById(R.id.credit_list);
         debtList = (LinearLayout) findViewById(R.id.debt_list);
@@ -123,10 +157,19 @@ public class RoundTrackerActivity extends AppCompatActivity {
         purchaserSelector = (Spinner) findViewById(R.id.purchaser_selector);
         recipientSelector = (Spinner) findViewById(R.id.recipient_selector);
         mainLayout = (LinearLayout) findViewById(R.id.main_layout);
+        progressBar = (ProgressBar) findViewById(R.id.progress_bar);
     }
 
     private void findCreditScoreScreenElements() {
         creditScoreLayout = (LinearLayout) findViewById(R.id.credit_score_layout);
+    }
+
+    private void findLedgerScreenElements() {
+        ledgerLayout = (LinearLayout) findViewById(R.id.ledger_layout);
+    }
+
+    private  void findDisputeScreenElements() {
+        ledgerLayout = (LinearLayout) findViewById(R.id.dispute_layout);
     }
 
     public void addListeners() {
@@ -190,8 +233,10 @@ public class RoundTrackerActivity extends AppCompatActivity {
     private void calculateAllBalances() {
         resetBalances();
         for (int i = ledgerEntries.size() - 1; i >= 0; i--) {
-            updateUserBalance(ledgerEntries.get(i).getPurchaserUserId(), -ledgerEntries.get(i).getVolume());
-            updateUserBalance(ledgerEntries.get(i).getRecipientUserId(), ledgerEntries.get(i).getVolume());
+            if(!ledgerEntries.get(i).isDispute() && !ledgerEntries.get(i).isDelete()) {
+                updateUserBalance(ledgerEntries.get(i).getPurchaserUserId(), -ledgerEntries.get(i).getVolume());
+                updateUserBalance(ledgerEntries.get(i).getRecipientUserId(), ledgerEntries.get(i).getVolume());
+            }
         }
     }
 
@@ -252,28 +297,38 @@ public class RoundTrackerActivity extends AppCompatActivity {
     }
 
     private void displayCreditScoreData() {
+        Collections.sort(users, User.userCreditScoreComparator);
         int position = 1;
         for (int i = 0; i < users.size(); i++) {
             if(users.get(i).getTotalPurchased() > 0 || users.get(i).getTotalReceived() > 0) {
                 addToCreditScoreLayout(position, users.get(i).getUserName(), users.get(i).getTotalPurchased(),
-                        getCreditScore(users.get(i).getTotalPurchased(), users.get(i).getTotalReceived()));
+                        User.getCreditScore(users.get(i).getTotalPurchased(), users.get(i).getTotalReceived()));
                 position++;
             }
         }
     }
 
-    private long getCreditScore(int totalPurchased, int totalReceived) {
-        Double multiplier = 1.0;
-        if(totalPurchased > 0 && totalReceived > 0) {
-            multiplier = (totalPurchased / totalReceived) * 0.5;
+    private void displayLedgerData() {
+        Collections.sort(ledgerEntries);
+        for (int i = 0; i < ledgerEntries.size(); i++) {
+            if(!ledgerEntries.get(i).isDispute() && !ledgerEntries.get(i).isDelete()) {
+                String dateTime = getDateTime(ledgerEntries.get(i).getTimestamp());
+                String purchaserUserName = getUserName(ledgerEntries.get(i).getPurchaserUserId());
+                String receiverUserName = getUserName(ledgerEntries.get(i).getRecipientUserId());
+                addToLedgerLayout(purchaserUserName, receiverUserName,
+                        ledgerEntries.get(i).getVolume(), dateTime);
+            }
         }
-        return Math.round(((totalPurchased) + ((totalPurchased - totalReceived)*3)) * multiplier);
+    }
+
+    private void displayDisputeData() {
+
     }
 
     private void setPurchaserSelector() {
         ArrayAdapter<User> adapter
                 = new ArrayAdapter<>(this,
-                android.R.layout.simple_spinner_item, getSpinnerArray());
+                android.R.layout.simple_spinner_item, getSpinnerArray(true));
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         purchaserSelector.setAdapter(adapter);
         purchaserSelector.setSelection(0);
@@ -282,17 +337,23 @@ public class RoundTrackerActivity extends AppCompatActivity {
     private void setRecipientSelector() {
         ArrayAdapter<User> adapter
                 = new ArrayAdapter<>(this,
-                android.R.layout.simple_spinner_item, getSpinnerArray());
+                android.R.layout.simple_spinner_item, getSpinnerArray(false));
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         recipientSelector.setAdapter(adapter);
-        recipientSelector.setSelection(1);
+        recipientSelector.setSelection(0);
     }
 
-    private List<User> getSpinnerArray() {
+    private List<User> getSpinnerArray(boolean reverseSort) {
         List<User> spinnerArray = new ArrayList<>();
         Collections.sort(users);
-        for (int i = 0; i < users.size(); i++) {
-            spinnerArray.add(users.get(i));
+        if(!reverseSort) {
+            for (int i = 0; i < users.size(); i++) {
+                spinnerArray.add(users.get(i));
+            }
+        } else {
+            for (int i = users.size()-1; i >= 0; i--) {
+                spinnerArray.add(users.get(i));
+            }
         }
         return spinnerArray;
     }
@@ -305,9 +366,7 @@ public class RoundTrackerActivity extends AppCompatActivity {
         textView.setText(user + " is owed " + (balance * -1));
         textView.setTextSize(19);
         params.setMargins(50, 0, 0, 15);
-
         int colourInt = Color.parseColor("#00A329");
-
         textView.setTextColor(colourInt);
         creditList.addView(textView, params);
     }
@@ -320,9 +379,7 @@ public class RoundTrackerActivity extends AppCompatActivity {
         textView.setText(user + " owes " + balance);
         textView.setTextSize(19);
         params.setMargins(50, 0, 0, 15);
-
         int colourInt = Color.parseColor("#CC3E16");
-
         textView.setTextColor(colourInt);
         debtList.addView(textView, params);
     }
@@ -345,7 +402,7 @@ public class RoundTrackerActivity extends AppCompatActivity {
         textView1.setText("Total purchased:  " + totalPurchased);
         textView1.setTextSize(18);
         params1.setMargins(214, 8, 30, 8);
-        textView1.setTextColor(Color.BLACK);
+        textView1.setTextColor(Color.GRAY);
         creditScoreLayout.addView(textView1, params1);
 
         TextView textView2 = new TextView(creditScoreLayout.getContext());
@@ -354,9 +411,39 @@ public class RoundTrackerActivity extends AppCompatActivity {
         params2.gravity = Gravity.LEFT;
         textView2.setText("Credit score:  " + score);
         textView2.setTextSize(18);
-        params2.setMargins(280, 8, 30, 24);
-        textView2.setTextColor(Color.BLACK);
+        params2.setMargins(214, 8, 30, 24); //280
+        textView2.setTextColor(Color.GRAY);
         creditScoreLayout.addView(textView2, params2);
+    }
+
+    private void addToLedgerLayout(String purchaserUserName, String receiverUserName,
+                                   int volume, String timestamp) {
+
+        TextView textView0 = new TextView(ledgerLayout.getContext());
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        textView0.setText(purchaserUserName + " -> " +receiverUserName);
+        textView0.setTextSize(18);
+        params.setMargins(50, 8, 0, 8);
+        textView0.setTextColor(Color.BLACK);
+        ledgerLayout.addView(textView0, params);
+
+        LinearLayout linearLayout = new LinearLayout(ledgerLayout.getContext());
+
+        Button disputeButton = new Button(ledgerLayout.getContext());
+        disputeButton.setText("DISPUTE");
+        LinearLayout.LayoutParams params1 = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        params1.gravity = Gravity.LEFT;
+        TextView textView1 = new TextView(ledgerLayout.getContext());
+        textView1.setText(timestamp);
+        textView1.setTextSize(18);
+        params1.setMargins(25, 8, 30, 24);
+        textView1.setTextColor(Color.GRAY);
+        linearLayout.addView(disputeButton, params1);
+        linearLayout.addView(textView1, params1);
+
+        ledgerLayout.addView(linearLayout, params1);
     }
 
     private void updateUserBalance(String userId, int balanceAdjust) {
@@ -385,9 +472,6 @@ public class RoundTrackerActivity extends AppCompatActivity {
     }
 
     private void addDbListeners() {
-
-        progressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleSmall);
-        mainLayout.addView(progressBar);
 
         usersEventListener = new ChildEventListener() {
             @Override
@@ -440,7 +524,13 @@ public class RoundTrackerActivity extends AppCompatActivity {
                 } catch(Exception ex) {
                 }
                 ledgerEntries.add(ledgerEntryFromDb);
-                // refresh hall of fame if needed
+                try {
+                    displayUserData();
+                    showCreditScore();
+                    showLedger();
+                    showDisputes();
+                } catch (Exception ex) {
+                }
             }
             @Override
             public void onChildChanged(DataSnapshot dataSnapshot, String prevChildKey) {
@@ -450,11 +540,20 @@ public class RoundTrackerActivity extends AppCompatActivity {
                             + ledgerEntries.get(i).getTimestamp()).equals(
                             ledgerEntryFromDb.getPurchaserUserId()
                                     + ledgerEntryFromDb.getTimestamp())) {
-                        ledgerEntries.get(i).setDiscard(ledgerEntryFromDb.isDiscard());
+                        ledgerEntries.get(i).setDispute(ledgerEntryFromDb.isDispute());
+                        ledgerEntries.get(i).setDeleteCount(ledgerEntryFromDb.getDeleteCount());
+                        ledgerEntries.get(i).setKeepCount(ledgerEntryFromDb.getKeepCount());
+                        ledgerEntries.get(i).setDelete(ledgerEntryFromDb.isDelete());
                         break;
                     }
                 }
-                // refresh hall of fame if needed
+                try {
+                    displayUserData();
+                    showCreditScore();
+                    showLedger();
+                    showDisputes();
+                } catch (Exception ex) {
+                }
             }
             @Override
             public void onChildRemoved(DataSnapshot dataSnapshot) {
@@ -472,6 +571,21 @@ public class RoundTrackerActivity extends AppCompatActivity {
     private void removeDbListeners() {
         usersTable.removeEventListener(usersEventListener);
         ledgerEntriesTable.removeEventListener(ledgerEntriesEventListener);
+    }
+
+    private String getUserName(String userId) {
+        for (int i = 0; i < users.size(); i++) {
+            if(users.get(i).getUserId().equals(userId)) {
+                return users.get(i).getUserName();
+            }
+        } return "";
+    }
+
+    private String getDateTime(Long timeInMilliseconds) {
+        DateFormat dateTimeFormat = new SimpleDateFormat("dd MMM yy\nHH:mm");
+        dateTimeFormat.setTimeZone(TimeZone.getDefault());
+        String dateFormatted = dateTimeFormat.format(new Date(timeInMilliseconds));
+        return dateFormatted;
     }
 
 }

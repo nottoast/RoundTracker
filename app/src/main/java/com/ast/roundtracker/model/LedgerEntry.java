@@ -3,11 +3,12 @@ package com.ast.roundtracker.model;
 import com.google.firebase.database.Exclude;
 import com.google.firebase.database.IgnoreExtraProperties;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
 @IgnoreExtraProperties
-public class LedgerEntry {
+public class LedgerEntry implements Comparable {
 
     private String purchaserUserId;
     private String recipientUserId;
@@ -52,14 +53,6 @@ public class LedgerEntry {
 
     public void setRecipientUserId(String recipientUserId) {
         this.recipientUserId = recipientUserId;
-    }
-
-    public boolean isDiscard() {
-        return delete;
-    }
-
-    public void setDiscard(boolean discard) {
-        this.delete = discard;
     }
 
     public int getVolume() {
@@ -131,5 +124,16 @@ public class LedgerEntry {
         result.put("totalCount", totalCount);
         result.put("delete", delete);
         return result;
+    }
+
+    @Override
+    public int compareTo(Object o) {
+        if(((LedgerEntry) o).getTimestamp() < this.getTimestamp()) {
+            return -1;
+        } else if(((LedgerEntry) o).getTimestamp() > this.getTimestamp()) {
+            return 1;
+        } else {
+            return 0;
+        }
     }
 }

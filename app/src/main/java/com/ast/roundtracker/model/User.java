@@ -2,6 +2,8 @@ package com.ast.roundtracker.model;
 
 import com.google.firebase.database.IgnoreExtraProperties;
 
+import java.util.Comparator;
+
 @IgnoreExtraProperties
 public class User implements Comparable {
 
@@ -14,10 +16,9 @@ public class User implements Comparable {
     public User() {
     }
 
-    public User(String userName, String userId, int balance, int totalPurchased, int totalReceived) {
+    public User(String userName, String userId, int totalPurchased, int totalReceived) {
         this.userName = userName;
         this.userId = userId;
-        this.balance = balance;
         this.totalPurchased = totalPurchased;
         this.totalReceived = totalReceived;
     }
@@ -34,12 +35,8 @@ public class User implements Comparable {
         return userId;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
     public int getBalance() {
-        return balance;
+        return totalPurchased - totalReceived;
     }
 
     public void setBalance(int balance) {
@@ -62,6 +59,14 @@ public class User implements Comparable {
         this.totalReceived = totalReceived;
     }
 
+    public static long getCreditScore(int totalPurchased, int totalReceived) {
+        Double multiplier = 1.0;
+        if(totalPurchased > 0 && totalReceived > 0) {
+            multiplier = (totalPurchased / totalReceived) * 0.5;
+        }
+        return Math.round(((totalPurchased) + ((totalPurchased - totalReceived)*3)) * multiplier);
+    }
+
     @Override
     public String toString() {
         return userName;
@@ -77,4 +82,12 @@ public class User implements Comparable {
             return 0;
         }
     }
+
+    public static Comparator<User> userCreditScoreComparator = new Comparator<User>() {
+        public int compare(User user1, User user2) {
+            Long creditScore1 = getCreditScore(user1.getTotalPurchased(), user1.getTotalReceived());
+            Long creditScore2 = getCreditScore(user2.getTotalPurchased(), user2.getTotalReceived());
+            return creditScore2.compareTo(creditScore1);
+        }
+    };
 }
