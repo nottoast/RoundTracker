@@ -10,6 +10,7 @@ import java.util.Map;
 @IgnoreExtraProperties
 public class LedgerEntry implements Comparable {
 
+    private String key;
     private String purchaserUserId;
     private String recipientUserId;
     private int volume;
@@ -25,9 +26,10 @@ public class LedgerEntry implements Comparable {
 
     }
 
-    public LedgerEntry(String purchaserUserId, String recipientUserId, int volume,
+    public LedgerEntry(String key, String purchaserUserId, String recipientUserId, int volume,
                        Object timestamp, boolean dispute, int keepCount,
                        int deleteCount, int totalCount, boolean delete) {
+        this.key = key;
         this.purchaserUserId = purchaserUserId;
         this.recipientUserId = recipientUserId;
         this.volume = volume;
@@ -37,6 +39,14 @@ public class LedgerEntry implements Comparable {
         this.deleteCount = deleteCount;
         this.totalCount = totalCount;
         this.delete = delete;
+    }
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
     }
 
     public String getPurchaserUserId() {
@@ -114,6 +124,7 @@ public class LedgerEntry implements Comparable {
     @Exclude
     public Map<String, Object> toMap() {
         HashMap<String, Object> result = new HashMap<>();
+        result.put("key", key);
         result.put("purchaserUserId", purchaserUserId);
         result.put("recipientUserId", recipientUserId);
         result.put("timestamp", timestamp);

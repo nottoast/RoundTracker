@@ -9,7 +9,6 @@ public class User implements Comparable {
 
     private String userName;
     private String userId;
-    private int balance;
     private int totalPurchased;
     private int totalReceived;
 
@@ -36,11 +35,7 @@ public class User implements Comparable {
     }
 
     public int getBalance() {
-        return totalPurchased - totalReceived;
-    }
-
-    public void setBalance(int balance) {
-        this.balance = balance;
+        return totalReceived - totalPurchased;
     }
 
     public int getTotalPurchased() {
@@ -62,9 +57,9 @@ public class User implements Comparable {
     public static long getCreditScore(int totalPurchased, int totalReceived) {
         Double multiplier = 1.0;
         if(totalPurchased > 0 && totalReceived > 0) {
-            multiplier = (totalPurchased / totalReceived) * 0.5;
+            multiplier = multiplier + ((totalPurchased - totalReceived) * 0.15);
         }
-        return Math.round(((totalPurchased) + ((totalPurchased - totalReceived)*3)) * multiplier);
+        return Math.round(((totalPurchased * 5) * multiplier)/2);
     }
 
     @Override
@@ -74,9 +69,9 @@ public class User implements Comparable {
 
     @Override
     public int compareTo(Object o) {
-        if(((User) o).getBalance() < this.balance) {
+        if(((User) o).getBalance() < this.getBalance()) {
             return 1;
-        } else if(((User) o).getBalance() > this.balance) {
+        } else if(((User) o).getBalance() > this.getBalance()) {
             return -1;
         } else {
             return 0;
