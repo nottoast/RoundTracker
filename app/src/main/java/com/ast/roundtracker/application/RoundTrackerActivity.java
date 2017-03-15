@@ -300,6 +300,9 @@ public class RoundTrackerActivity extends AppCompatActivity {
     }
 
     private void displayCreditScoreData() {
+
+        creditScoreLayout.removeAllViews();
+
         boolean noDataToDisplay = true;
         Collections.sort(users, User.userCreditScoreComparator);
         int position = 1;
@@ -324,6 +327,9 @@ public class RoundTrackerActivity extends AppCompatActivity {
     }
 
     private void displayLedgerData() {
+
+        ledgerLayout.removeAllViews();
+
         Collections.sort(ledgerEntries);
         for (int i = 0; i < ledgerEntries.size(); i++) {
             if(!ledgerEntries.get(i).isDispute() && !ledgerEntries.get(i).isDelete()) {
@@ -337,6 +343,9 @@ public class RoundTrackerActivity extends AppCompatActivity {
     }
 
     private void displayDisputeData() {
+
+        disputeLayout.removeAllViews();
+
         Collections.sort(ledgerEntries);
         for (int i = 0; i < ledgerEntries.size(); i++) {
             if(ledgerEntries.get(i).isDispute() && !ledgerEntries.get(i).isDelete()) {
