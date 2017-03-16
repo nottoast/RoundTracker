@@ -593,7 +593,18 @@ public class RoundTrackerActivity extends AppCompatActivity {
                     }
                 } catch(Exception ex) {
                 }
-                users.add(userFromDb);
+
+                boolean addUser = true;
+                for (int i = 0; i < users.size(); i++) {
+                    if(users.get(i).getUserId().equals(userFromDb.getUserId())) {
+                        addUser = false;
+                        break;
+                    }
+                }
+                if(addUser) {
+                    users.add(userFromDb);
+                }
+
                 setPurchaserSelector();
                 setRecipientSelector();
                 displayUserData();
@@ -640,7 +651,18 @@ public class RoundTrackerActivity extends AppCompatActivity {
                     }
                 } catch(Exception ex) {
                 }
-                ledgerEntries.add(ledgerEntryFromDb);
+
+                boolean addLedgerEntry = true;
+                for (int i = 0; i < ledgerEntries.size(); i++) {
+                    if(ledgerEntries.get(i).getKey().equals(ledgerEntryFromDb.getKey())) {
+                        addLedgerEntry = false;
+                        break;
+                    }
+                }
+                if(addLedgerEntry) {
+                    ledgerEntries.add(ledgerEntryFromDb);
+                }
+
                 try {
                     displayUserData();
                     showCreditScore();
