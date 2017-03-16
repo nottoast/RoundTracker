@@ -81,6 +81,8 @@ public class RoundTrackerActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         addDbListeners();
+        setContentView(R.layout.activity_round_tracker);
+        showRoundTracker();
     }
 
     @Override
