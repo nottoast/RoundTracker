@@ -3,7 +3,6 @@ package com.ast.roundtracker.model;
 import com.google.firebase.database.Exclude;
 import com.google.firebase.database.IgnoreExtraProperties;
 
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,6 +12,11 @@ public class LedgerEntry implements Comparable {
     private String key;
     private String purchaserUserId;
     private String recipientUserId;
+    private String addedByUserId;
+
+    // Once we merge the DBs then can remove this, we'll just refer to the ID
+    private String addedByUserName;
+
     private int volume;
     private Object timestamp;
 
@@ -28,7 +32,7 @@ public class LedgerEntry implements Comparable {
 
     public LedgerEntry(String key, String purchaserUserId, String recipientUserId, int volume,
                        Object timestamp, boolean dispute, int keepCount,
-                       int deleteCount, int totalCount, boolean delete) {
+                       int deleteCount, int totalCount, boolean delete, String addedByUserId, String addedByUserName) {
         this.key = key;
         this.purchaserUserId = purchaserUserId;
         this.recipientUserId = recipientUserId;
@@ -39,6 +43,8 @@ public class LedgerEntry implements Comparable {
         this.deleteCount = deleteCount;
         this.totalCount = totalCount;
         this.delete = delete;
+        this.addedByUserId = addedByUserId;
+        this.addedByUserName = addedByUserName;
     }
 
     public String getKey() {
@@ -121,6 +127,30 @@ public class LedgerEntry implements Comparable {
         this.delete = delete;
     }
 
+    public String getAddedByUserId() {
+        if(addedByUserId == null) {
+            return "Unknown";
+        } else {
+            return addedByUserId;
+        }
+    }
+
+    public void setAddedByUserId(String addedByUserId) {
+        this.addedByUserId = addedByUserId;
+    }
+
+    public String getAddedByUserName() {
+        if(addedByUserName == null) {
+            return "Unknown";
+        } else {
+            return addedByUserName;
+        }
+    }
+
+    public void setAddedByUserName(String addedByUserName) {
+        this.addedByUserName = addedByUserName;
+    }
+
     @Exclude
     public Map<String, Object> toMap() {
         HashMap<String, Object> result = new HashMap<>();
@@ -134,6 +164,8 @@ public class LedgerEntry implements Comparable {
         result.put("deleteCount", deleteCount);
         result.put("totalCount", totalCount);
         result.put("delete", delete);
+        result.put("addedByUserId", addedByUserId);
+        result.put("addedByUserName", addedByUserName);
         return result;
     }
 
