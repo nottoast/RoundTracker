@@ -1,5 +1,7 @@
 package com.ast.roundtracker.application;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -36,13 +38,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
-public class RoundTrackerActivity extends AppCompatActivity {
+public class LedgerActivity extends AppCompatActivity {
 
     private static String LEDGER = "pt-ledger-1";
 
     private final FirebaseDatabase database = FirebaseDatabase.getInstance();
 
     private static boolean addToLedgerLocked = false;
+    private static boolean disputeEntry = false;
+    private static boolean restoreEntry = false;
 
     private List<LedgerEntry> ledgerEntries;
     private List<User> users;
@@ -58,7 +62,6 @@ public class RoundTrackerActivity extends AppCompatActivity {
     private ChildEventListener usersEventListener;
     private DatabaseReference ledgerEntriesTable;
     private ChildEventListener ledgerEntriesEventListener;
-    private LinearLayout creditScoreLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,7 +114,7 @@ public class RoundTrackerActivity extends AppCompatActivity {
             }
             return true;
         } else if (id == R.id.action_credit_score) {
-            setContentView(R.layout.activity_credit_score);
+            setContentView(R.layout.activity_data_display);
             showCreditScore();
             return true;
         } else if (id == R.id.action_ledger) {
@@ -135,8 +138,8 @@ public class RoundTrackerActivity extends AppCompatActivity {
     }
 
     public void showCreditScore() {
-        findCreditScoreScreenElements();
-        displayCreditScoreData();
+        findDataDisplayScreenElements();
+        displayCreditScoreData("Credit score");
     }
 
     public void showLedger() {
@@ -156,10 +159,6 @@ public class RoundTrackerActivity extends AppCompatActivity {
         purchaserSelector = (Spinner) findViewById(R.id.purchaser_selector);
         recipientSelector = (Spinner) findViewById(R.id.recipient_selector);
         progressBar = (ProgressBar) findViewById(R.id.progress_bar);
-    }
-
-    private void findCreditScoreScreenElements() {
-        creditScoreLayout = (LinearLayout) findViewById(R.id.credit_score_layout);
     }
 
     private void findDataDisplayScreenElements() {
@@ -185,14 +184,15 @@ public class RoundTrackerActivity extends AppCompatActivity {
                         Object timestamp = ServerValue.TIMESTAMP;
                         String key = ledgerEntriesTable.push().getKey();
 
-                        // Replace unknown strings with single user ID
+                        // Replace unknown strings with single user IDs
                         LedgerEntry ledgerEntry = new LedgerEntry(key,
                                 purchaserId,
                                 recipientId,
-                                1, timestamp,
-                                false, 0, 0,
-                                users.size(),
+                                timestamp,
+                                timestamp,
                                 false,
+                                "Unknown",
+                                "Unknown",
                                 "Unknown",
                                 "Unknown");
 
@@ -200,8 +200,8 @@ public class RoundTrackerActivity extends AppCompatActivity {
                         Map<String, Object> childUpdates = new HashMap<>();
                         childUpdates.put(key, ledgerEntryValues);
 
-                        updateUserBalance(ledgerEntry.getPurchaserUserId(), -ledgerEntry.getVolume());
-                        updateUserBalance(ledgerEntry.getRecipientUserId(), ledgerEntry.getVolume());
+                        updateUserBalance(ledgerEntry.getPurchaserUserId(), -1);
+                        updateUserBalance(ledgerEntry.getRecipientUserId(), 1);
 
                         saveBalances();
 
@@ -261,9 +261,9 @@ public class RoundTrackerActivity extends AppCompatActivity {
     private void calculateAllBalances() {
         resetBalances();
         for (int i = ledgerEntries.size() - 1; i >= 0; i--) {
-            if(!ledgerEntries.get(i).isDispute() && !ledgerEntries.get(i).isDelete()) {
-                updateUserBalance(ledgerEntries.get(i).getPurchaserUserId(), -ledgerEntries.get(i).getVolume());
-                updateUserBalance(ledgerEntries.get(i).getRecipientUserId(), ledgerEntries.get(i).getVolume());
+            if(!ledgerEntries.get(i).isDispute()) {
+                updateUserBalance(ledgerEntries.get(i).getPurchaserUserId(), -1);
+                updateUserBalance(ledgerEntries.get(i).getRecipientUserId(), 1);
             }
         }
     }
@@ -324,9 +324,10 @@ public class RoundTrackerActivity extends AppCompatActivity {
         }
     }
 
-    private void displayCreditScoreData() {
+    private void displayCreditScoreData(String title) {
 
-        creditScoreLayout.removeAllViews();
+        dataDisplay.removeAllViews();
+        dataDisplayTitle.setText(title);
 
         boolean noDataToDisplay = true;
         Collections.sort(users, User.userCreditScoreComparator);
@@ -340,14 +341,14 @@ public class RoundTrackerActivity extends AppCompatActivity {
             }
         }
         if(noDataToDisplay) {
-            TextView textView = new TextView(creditScoreLayout.getContext());
+            TextView textView = new TextView(dataDisplay.getContext());
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
             textView.setText("No data to display");
             textView.setTextSize(19);
             params.setMargins(50, 8, 0, 8);
             textView.setTextColor(Color.BLACK);
-            creditScoreLayout.addView(textView, params);
+            dataDisplay.addView(textView, params);
         }
     }
 
@@ -363,19 +364,18 @@ public class RoundTrackerActivity extends AppCompatActivity {
             String buttonText = "";
 
             if(title.equals("Ledger")) {
-                addToDataDisplay = !ledgerEntries.get(i).isDispute() && !ledgerEntries.get(i).isDelete();
+                addToDataDisplay = !ledgerEntries.get(i).isDispute();
                 buttonText = "DISPUTE";
             } else if(title.equals("Disputes")) {
-                addToDataDisplay = ledgerEntries.get(i).isDispute() && !ledgerEntries.get(i).isDelete();
+                addToDataDisplay = ledgerEntries.get(i).isDispute();
                 buttonText = "RESTORE";
             }
 
             if(addToDataDisplay) {
-                String dateTime = getDateTime(ledgerEntries.get(i).getTimestamp());
+                String dateTime = getDateTime(ledgerEntries.get(i).getOriginalTimestamp());
                 String purchaserUserName = getUserName(ledgerEntries.get(i).getPurchaserUserId());
                 String receiverUserName = getUserName(ledgerEntries.get(i).getRecipientUserId());
-                addToDataDisplay(ledgerEntries.get(i), purchaserUserName, receiverUserName,
-                        ledgerEntries.get(i).getVolume(), dateTime, buttonText);
+                addToDataDisplay(ledgerEntries.get(i), purchaserUserName, receiverUserName, dateTime, buttonText);
             }
         }
     }
@@ -441,16 +441,16 @@ public class RoundTrackerActivity extends AppCompatActivity {
 
     private void addToCreditScoreLayout(int position, String userName, int totalPurchased, long score) {
 
-        TextView textView0 = new TextView(creditScoreLayout.getContext());
+        TextView textView0 = new TextView(dataDisplay.getContext());
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         textView0.setText(position + ")  " + userName + "  " + score);
         textView0.setTextSize(20);
         params.setMargins(50, 8, 0, 8);
         textView0.setTextColor(Color.BLACK);
-        creditScoreLayout.addView(textView0, params);
+        dataDisplay.addView(textView0, params);
 
-        TextView textView1 = new TextView(creditScoreLayout.getContext());
+        TextView textView1 = new TextView(dataDisplay.getContext());
         LinearLayout.LayoutParams params1 = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         params1.gravity = Gravity.LEFT;
@@ -458,13 +458,12 @@ public class RoundTrackerActivity extends AppCompatActivity {
         textView1.setTextSize(18);
         params1.setMargins(214, 6, 30, 10);
         textView1.setTextColor(Color.GRAY);
-        creditScoreLayout.addView(textView1, params1);
+        dataDisplay.addView(textView1, params1);
     }
 
     private void addToDataDisplay(final LedgerEntry ledgerEntry,
                                   final String purchaserUserName,
                                   String receiverUserName,
-                                  int volume,
                                   final String timestamp,
                                   String buttonText) {
 
@@ -489,15 +488,68 @@ public class RoundTrackerActivity extends AppCompatActivity {
                         if(ledgerEntries.get(i).getKey().equals(ledgerEntry.getKey())) {
 
                             if(disputeButton.getText().equals("DISPUTE")) {
-                                ledgerEntries.get(i).setDispute(true);
-                                saveLedgerEntry(ledgerEntries.get(i));
-                                setContentView(R.layout.activity_data_display);
-                                showLedger();
+
+                                AlertDialog.Builder builder = new AlertDialog.Builder(LedgerActivity.this);
+                                builder.setTitle(R.string.app_name);
+                                builder.setMessage("Are you sure you want to dispute this entry?");
+                                builder.setIcon(R.drawable.ic_android_black_24dp);
+                                builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        disputeEntry = true;
+                                        dialog.dismiss();
+                                    }
+                                });
+                                builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        dialog.dismiss();
+                                    }
+                                });
+                                AlertDialog alert = builder.create();
+                                alert.show();
+
+                                if(disputeEntry) {
+                                    disputeEntry = false;
+                                    ledgerEntries.get(i).setDispute(true);
+                                    Object latestTimestamp = ServerValue.TIMESTAMP;
+                                    ledgerEntries.get(i).setLatestTimestamp(latestTimestamp);
+                                    ledgerEntries.get(i).setDisputedByUserId("Unknown");
+                                    ledgerEntries.get(i).setDisputedByUserName("Unknown");
+                                    saveLedgerEntry(ledgerEntries.get(i));
+                                    setContentView(R.layout.activity_data_display);
+                                    showLedger();
+                                }
+
                             } else if(disputeButton.getText().equals("RESTORE")) {
-                                ledgerEntries.get(i).setDispute(false);
-                                saveLedgerEntry(ledgerEntries.get(i));
-                                setContentView(R.layout.activity_data_display);
-                                showDisputes();
+
+                                AlertDialog.Builder builder = new AlertDialog.Builder(LedgerActivity.this);
+                                builder.setTitle(R.string.app_name);
+                                builder.setMessage("Are you sure you want to restore this entry?");
+                                builder.setIcon(R.drawable.ic_android_black_24dp);
+                                builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        restoreEntry = true;
+                                        dialog.dismiss();
+                                    }
+                                });
+                                builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        dialog.dismiss();
+                                    }
+                                });
+                                AlertDialog alert = builder.create();
+                                alert.show();
+
+                                if(restoreEntry) {
+                                    restoreEntry = false;
+                                    ledgerEntries.get(i).setDispute(false);
+                                    Object latestTimestamp = ServerValue.TIMESTAMP;
+                                    ledgerEntries.get(i).setLatestTimestamp(latestTimestamp);
+                                    ledgerEntries.get(i).setDisputedByUserId("Unknown");
+                                    ledgerEntries.get(i).setDisputedByUserName("Unknown");
+                                    saveLedgerEntry(ledgerEntries.get(i));
+                                    setContentView(R.layout.activity_data_display);
+                                    showDisputes();
+                                }
                             }
 
                             calculateAllBalances();
@@ -515,7 +567,13 @@ public class RoundTrackerActivity extends AppCompatActivity {
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         params1.gravity = Gravity.LEFT;
         TextView textView1 = new TextView(dataDisplay.getContext());
-        textView1.setText("Added by: "+ledgerEntry.getAddedByUserName().split(" ")[0]+"\n"+timestamp);
+
+        if(disputeButton.getText().equals("DISPUTE")) {
+            textView1.setText("Added by: "+ledgerEntry.getAddedByUserName().split(" ")[0]+"\n"+timestamp);
+        } else if(disputeButton.getText().equals("RESTORE")) {
+            textView1.setText("Disputed by: "+ledgerEntry.getDisputedByUserName().split(" ")[0]+"\n"+timestamp);
+        }
+
         textView1.setTextSize(17);
         params1.setMargins(25, 8, 0, 24);
         textView1.setTextColor(Color.GRAY);
@@ -635,9 +693,6 @@ public class RoundTrackerActivity extends AppCompatActivity {
 
                 try {
                     displayUserData();
-                    showCreditScore();
-                    showLedger();
-                    showDisputes();
                 } catch (Exception ex) {
                 }
             }
@@ -647,17 +702,14 @@ public class RoundTrackerActivity extends AppCompatActivity {
                 for (int i = 0; i < ledgerEntries.size(); i++) {
                     if(ledgerEntries.get(i).getKey().equals(ledgerEntryFromDb.getKey())) {
                         ledgerEntries.get(i).setDispute(ledgerEntryFromDb.isDispute());
-                        ledgerEntries.get(i).setDeleteCount(ledgerEntryFromDb.getDeleteCount());
-                        ledgerEntries.get(i).setKeepCount(ledgerEntryFromDb.getKeepCount());
-                        ledgerEntries.get(i).setDelete(ledgerEntryFromDb.isDelete());
+                        ledgerEntries.get(i).setLatestTimestamp(ledgerEntryFromDb.getLatestTimestamp());
+                        ledgerEntries.get(i).setDisputedByUserId(ledgerEntryFromDb.getDisputedByUserId());
+                        ledgerEntries.get(i).setDisputedByUserName(ledgerEntryFromDb.getDisputedByUserName());
                         break;
                     }
                 }
                 try {
                     displayUserData();
-                    showCreditScore();
-                    showLedger();
-                    showDisputes();
                 } catch (Exception ex) {
                 }
             }

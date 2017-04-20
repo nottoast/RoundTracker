@@ -13,38 +13,30 @@ public class LedgerEntry implements Comparable {
     private String purchaserUserId;
     private String recipientUserId;
     private String addedByUserId;
-
-    // Once we merge the DBs then can remove this, we'll just refer to the ID
     private String addedByUserName;
-
-    private int volume;
-    private Object timestamp;
-
+    private String disputedByUserId;
+    private String disputedByUserName;
+    private Object originalTimestamp;
+    private Object latestTimestamp;
     private boolean dispute;
-    private int keepCount;
-    private int deleteCount;
-    private int totalCount;
-    private boolean delete;
 
     public LedgerEntry() {
-
     }
 
-    public LedgerEntry(String key, String purchaserUserId, String recipientUserId, int volume,
-                       Object timestamp, boolean dispute, int keepCount,
-                       int deleteCount, int totalCount, boolean delete, String addedByUserId, String addedByUserName) {
+    public LedgerEntry(String key, String purchaserUserId, String recipientUserId,
+                       Object originalTimestamp, Object latestTimestamp, boolean dispute,
+                       String addedByUserId, String addedByUserName,
+                       String disputedByUserId, String disputedByUserName) {
         this.key = key;
         this.purchaserUserId = purchaserUserId;
         this.recipientUserId = recipientUserId;
-        this.volume = volume;
-        this.timestamp = timestamp;
+        this.originalTimestamp = originalTimestamp;
+        this.latestTimestamp = latestTimestamp;
         this.dispute = dispute;
-        this.keepCount = keepCount;
-        this.deleteCount = deleteCount;
-        this.totalCount = totalCount;
-        this.delete = delete;
         this.addedByUserId = addedByUserId;
         this.addedByUserName = addedByUserName;
+        this.disputedByUserId = disputedByUserId;
+        this.disputedByUserName = disputedByUserName;
     }
 
     public String getKey() {
@@ -71,20 +63,20 @@ public class LedgerEntry implements Comparable {
         this.recipientUserId = recipientUserId;
     }
 
-    public int getVolume() {
-        return volume;
+    public long getOriginalTimestamp() {
+        return (long) originalTimestamp;
     }
 
-    public void setVolume(int volume) {
-        this.volume = volume;
+    public void setOriginalTimestamp(Object originalTimestamp) {
+        this.originalTimestamp = originalTimestamp;
     }
 
-    public long getTimestamp() {
-        return (Long) timestamp;
+    public long getLatestTimestamp() {
+        return (long) latestTimestamp;
     }
 
-    public void setTimestamp(Object timestamp) {
-        this.timestamp = timestamp;
+    public void setLatestTimestamp(Object latestTimestamp) {
+        this.latestTimestamp = latestTimestamp;
     }
 
     public boolean isDispute() {
@@ -93,38 +85,6 @@ public class LedgerEntry implements Comparable {
 
     public void setDispute(boolean dispute) {
         this.dispute = dispute;
-    }
-
-    public int getKeepCount() {
-        return keepCount;
-    }
-
-    public void setKeepCount(int keepCount) {
-        this.keepCount = keepCount;
-    }
-
-    public int getDeleteCount() {
-        return deleteCount;
-    }
-
-    public void setDeleteCount(int deleteCount) {
-        this.deleteCount = deleteCount;
-    }
-
-    public int getTotalCount() {
-        return totalCount;
-    }
-
-    public void setTotalCount(int totalCount) {
-        this.totalCount = totalCount;
-    }
-
-    public boolean isDelete() {
-        return delete;
-    }
-
-    public void setDelete(boolean delete) {
-        this.delete = delete;
     }
 
     public String getAddedByUserId() {
@@ -151,29 +111,43 @@ public class LedgerEntry implements Comparable {
         this.addedByUserName = addedByUserName;
     }
 
+    public String getDisputedByUserId() {
+        return disputedByUserId;
+    }
+
+    public void setDisputedByUserId(String disputedByUserId) {
+        this.disputedByUserId = disputedByUserId;
+    }
+
+    public String getDisputedByUserName() {
+        return disputedByUserName;
+    }
+
+    public void setDisputedByUserName(String disputedByUserName) {
+        this.disputedByUserName = disputedByUserName;
+    }
+
     @Exclude
     public Map<String, Object> toMap() {
         HashMap<String, Object> result = new HashMap<>();
         result.put("key", key);
         result.put("purchaserUserId", purchaserUserId);
         result.put("recipientUserId", recipientUserId);
-        result.put("timestamp", timestamp);
-        result.put("volume", volume);
+        result.put("originalTimestamp", originalTimestamp);
+        result.put("latestTimestamp", latestTimestamp);
         result.put("dispute", dispute);
-        result.put("keepCount", keepCount);
-        result.put("deleteCount", deleteCount);
-        result.put("totalCount", totalCount);
-        result.put("delete", delete);
         result.put("addedByUserId", addedByUserId);
         result.put("addedByUserName", addedByUserName);
+        result.put("disputedByUserId", disputedByUserId);
+        result.put("disputedByUserName", disputedByUserName);
         return result;
     }
 
     @Override
     public int compareTo(Object o) {
-        if(((LedgerEntry) o).getTimestamp() < this.getTimestamp()) {
+        if(((LedgerEntry) o).getLatestTimestamp() < this.getLatestTimestamp()) {
             return -1;
-        } else if(((LedgerEntry) o).getTimestamp() > this.getTimestamp()) {
+        } else if(((LedgerEntry) o).getLatestTimestamp() > this.getLatestTimestamp()) {
             return 1;
         } else {
             return 0;
