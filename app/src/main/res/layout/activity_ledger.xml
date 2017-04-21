@@ -19,13 +19,6 @@
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true">
 
-        <ProgressBar
-            style="?android:attr/progressBarStyle"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:id="@+id/progress_bar"
-            android:paddingBottom="425dp" />
-
         <TextView
             android:text="Add to ledger"
             android:layout_width="match_parent"
@@ -77,51 +70,60 @@
             android:layout_width="135dp" />
 
         <LinearLayout
-            android:orientation="vertical"
+            android:id="@+id/dashboard_layout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginTop="10dp">
+            android:layout_marginTop="10dp"
+            android:orientation="vertical">
 
             <TextView
-                android:text="Needy"
+                android:id="@+id/textView2"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:id="@+id/textView2"
-                android:layout_marginLeft="10dp"
-                android:textSize="20sp"
-                android:layout_marginTop="5dp"
                 android:layout_marginBottom="0dp"
-                android:layout_weight="0.15" />
+                android:layout_marginLeft="10dp"
+                android:layout_marginTop="5dp"
+                android:layout_weight="0.15"
+                android:text="Needy"
+                android:textSize="20sp" />
 
             <LinearLayout
-                android:orientation="vertical"
                 android:id="@+id/credit_list"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_weight="0.5">
+                android:layout_weight="0.5"
+                android:orientation="vertical">
 
             </LinearLayout>
 
             <TextView
-                android:text="Greedy"
+                android:id="@+id/textView3"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:id="@+id/textView3"
-                android:layout_marginLeft="10dp"
-                android:textSize="20sp"
-                android:layout_marginTop="0dp"
                 android:layout_marginBottom="0dp"
-                android:layout_weight="0.15" />
+                android:layout_marginLeft="10dp"
+                android:layout_marginTop="0dp"
+                android:layout_weight="0.15"
+                android:text="Greedy"
+                android:textSize="20sp" />
 
             <LinearLayout
-                android:orientation="vertical"
+                android:id="@+id/debt_list"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:id="@+id/debt_list"
-                android:layout_weight="0.5">
+                android:layout_weight="0.5"
+                android:orientation="vertical">
 
             </LinearLayout>
+
         </LinearLayout>
+
+        <ProgressBar
+            android:id="@+id/progress_bar"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingBottom="425dp" />
 
     </LinearLayout>
 

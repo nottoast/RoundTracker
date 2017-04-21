@@ -13,6 +13,13 @@
             android:label="@string/title_activity_round_tracker"
             android:launchMode="singleInstance"
             android:theme="@style/RoundTrackerTheme">
+
+        </activity>
+        <activity
+            android:name=".application.LedgersActivity"
+            android:label="@string/title_activity_round_tracker"
+            android:launchMode="singleInstance"
+            android:theme="@style/RoundTrackerTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

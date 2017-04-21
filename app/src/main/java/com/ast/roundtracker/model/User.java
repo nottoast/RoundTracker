@@ -54,12 +54,8 @@ public class User implements Comparable {
         this.totalReceived = totalReceived;
     }
 
-    public static long getCreditScore(int totalPurchased, int totalReceived) {
-        Double multiplier = 1.0;
-        if(totalPurchased > 0 && totalReceived > 0) {
-            multiplier = multiplier + ((totalPurchased - totalReceived) * 0.15);
-        }
-        return Math.round(((totalPurchased * 5) * multiplier)/2);
+    public static Integer getBalance(int totalPurchased, int totalReceived) {
+        return totalReceived - totalPurchased;
     }
 
     @Override
@@ -80,8 +76,8 @@ public class User implements Comparable {
 
     public static Comparator<User> userCreditScoreComparator = new Comparator<User>() {
         public int compare(User user1, User user2) {
-            Long creditScore1 = getCreditScore(user1.getTotalPurchased(), user1.getTotalReceived());
-            Long creditScore2 = getCreditScore(user2.getTotalPurchased(), user2.getTotalReceived());
+            Integer creditScore1 = user1.getTotalPurchased() - getBalance(user1.getTotalPurchased(), user1.getTotalReceived());
+            Integer creditScore2 = user2.getTotalPurchased() - getBalance(user2.getTotalPurchased(), user2.getTotalReceived());
             return creditScore2.compareTo(creditScore1);
         }
     };

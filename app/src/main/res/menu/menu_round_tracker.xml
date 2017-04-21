@@ -8,9 +8,9 @@
         android:title="@string/action_round_tracker"
         app:showAsAction="never" />
     <item
-        android:id="@+id/action_credit_score"
+        android:id="@+id/action_leaderboard"
         android:orderInCategory="200"
-        android:title="@string/action_credit_score"
+        android:title="@string/action_leaderboard"
         app:showAsAction="never" />
     <item
         android:id="@+id/action_ledger"
