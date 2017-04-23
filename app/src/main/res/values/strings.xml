@@ -5,6 +5,6 @@
     <string name="action_leaderboard">Leaderboard</string>
     <string name="action_ledger">Ledger</string>
     <string name="action_disputes">Disputes</string>
-    <string name="section_format">Hello World from section: %1$d</string>
+    <string name="action_ledger_list">Ledger list</string>
     <string name="title_activity_round_tracker">RoundTracker</string>
 </resources>

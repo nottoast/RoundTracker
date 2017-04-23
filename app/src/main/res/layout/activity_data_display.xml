@@ -10,6 +10,18 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.ast.roundtracker.application.LedgerActivity">
 
+    <TextView
+        android:id="@+id/title_data_display"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:text="Ledger"
+        android:textAllCaps="false"
+        android:textSize="20sp"
+        android:textStyle="normal|bold" />
+
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -22,15 +34,4 @@
             android:id="@+id/ledger_layout"></LinearLayout>
     </ScrollView>
 
-    <TextView
-        android:text="Ledger"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/title_data_display"
-        android:textStyle="normal|bold"
-        android:textAllCaps="false"
-        android:textSize="20sp"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true" />
 </RelativeLayout>

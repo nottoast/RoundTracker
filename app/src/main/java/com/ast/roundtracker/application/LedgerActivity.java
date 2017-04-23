@@ -2,6 +2,7 @@ package com.ast.roundtracker.application;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -20,6 +21,7 @@ import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import com.ast.roundtracker.R;
 import com.ast.roundtracker.model.LedgerEntry;
 import com.ast.roundtracker.model.User;
@@ -54,12 +56,13 @@ public class LedgerActivity extends AppCompatActivity {
     private LinearLayout creditList;
     private LinearLayout debtList;
     private LinearLayout dataDisplay;
-
+    private TextView addToLedgerTitle;
     private TextView dataDisplayTitle;
     private Spinner purchaserSelector;
     private Spinner recipientSelector;
     private Button addToLedgerButton;
     private ProgressBar progressBar;
+    private String currentLedgerName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,12 +71,13 @@ public class LedgerActivity extends AppCompatActivity {
 
         //TODO: Change the default ledger to sandbox or something similar
         SharedPreferences preferences = getSharedPreferences("round_tracker_prefs", 0);
-        String ledger = preferences.getString("user_nickname", "pt-ledger-1");
+        String currentLedger = preferences.getString("current_ledger", "sandbox");
+        currentLedgerName = preferences.getString("current_ledger_name", "sandbox");
 
         users = new ArrayList<>();
-        usersTable = database.getReference("ledgers/"+ledger+"/users");
+        usersTable = database.getReference("ledgers/" + currentLedger + "/users");
         ledgerEntries = new ArrayList();
-        ledgerEntriesTable = database.getReference("ledgers/"+ledger+"/ledger");
+        ledgerEntriesTable = database.getReference("ledgers/" + currentLedger + "/ledger");
 
         addDbListeners();
         showLedger();
@@ -96,7 +100,7 @@ public class LedgerActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_round_tracker, menu);
+        getMenuInflater().inflate(R.menu.menu_ledger, menu);
         return true;
     }
 
@@ -111,7 +115,7 @@ public class LedgerActivity extends AppCompatActivity {
                     ((ViewGroup) progressBar.getParent())
                             .removeView(progressBar);
                 }
-            } catch(Exception ex) {
+            } catch (Exception ex) {
             }
             return true;
         } else if (id == R.id.action_leaderboard) {
@@ -126,12 +130,24 @@ public class LedgerActivity extends AppCompatActivity {
             setContentView(R.layout.activity_data_display);
             showDisputeDetails();
             return true;
+        } else if (id == R.id.action_ledger_list) {
+
+            SharedPreferences settings = getSharedPreferences("round_tracker_prefs", 0);
+            SharedPreferences.Editor editor = settings.edit();
+            editor.clear();
+            editor.putString("current_ledger_status", "closed");
+            editor.commit();
+
+            Intent intent = new Intent(getApplicationContext(), LedgerListActivity.class);
+            startActivity(intent);
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }
 
     public void showLedger() {
         findRoundTrackerScreenElements();
+        addToLedgerTitle.setText("Add to:  " + currentLedgerName);
         setPurchaserSelector();
         setRecipientSelector();
         addListeners();
@@ -154,6 +170,7 @@ public class LedgerActivity extends AppCompatActivity {
     }
 
     private void findRoundTrackerScreenElements() {
+        addToLedgerTitle = (TextView) findViewById(R.id.title_text);
         creditList = (LinearLayout) findViewById(R.id.credit_list);
         debtList = (LinearLayout) findViewById(R.id.debt_list);
         addToLedgerButton = (Button) findViewById(R.id.add_to_ledger_button);
@@ -178,7 +195,7 @@ public class LedgerActivity extends AppCompatActivity {
 
                     final String purchaserId = ((User) purchaserSelector.getSelectedItem()).getUserId();
                     final String recipientId = ((User) recipientSelector.getSelectedItem()).getUserId();
-                    if(!purchaserId.equals(recipientId)) {
+                    if (!purchaserId.equals(recipientId)) {
 
                         AlertDialog.Builder builder = new AlertDialog.Builder(LedgerActivity.this);
                         builder.setMessage("Are you sure you want to create this entry?");
@@ -221,10 +238,6 @@ public class LedgerActivity extends AppCompatActivity {
                                 Thread thread = new Thread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        try {
-                                            Thread.sleep(1500);
-                                        } catch (InterruptedException e) {
-                                        }
                                         addToLedgerLocked = false;
                                     }
                                 });
@@ -265,7 +278,9 @@ public class LedgerActivity extends AppCompatActivity {
         ledgerEntriesTable.child(key)
                 .child("dispute")
                 .setValue(ledgerEntry.isDispute());
-        // Add other variables here when needed
+        ledgerEntriesTable.child(key)
+                .child("latestTimestamp")
+                .setValue(ledgerEntry.getLatestTimestamp());
     }
 
     private void resetBalances() {
@@ -277,7 +292,7 @@ public class LedgerActivity extends AppCompatActivity {
     private void calculateAllBalances() {
         resetBalances();
         for (int i = ledgerEntries.size() - 1; i >= 0; i--) {
-            if(!ledgerEntries.get(i).isDispute()) {
+            if (!ledgerEntries.get(i).isDispute()) {
                 updateUserBalance(ledgerEntries.get(i).getPurchaserUserId(), -1);
                 updateUserBalance(ledgerEntries.get(i).getRecipientUserId(), 1);
             }
@@ -315,7 +330,7 @@ public class LedgerActivity extends AppCompatActivity {
             }
         }
 
-        if(balancedLedger) {
+        if (balancedLedger) {
             try {
                 TextView textView = new TextView(creditList.getContext());
                 LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
@@ -349,14 +364,14 @@ public class LedgerActivity extends AppCompatActivity {
         Collections.sort(users, User.userCreditScoreComparator);
         int position = 1;
         for (int i = 0; i < users.size(); i++) {
-            if(users.get(i).getTotalPurchased() > 0 || users.get(i).getTotalReceived() > 0) {
-                addToCreditScoreLayout(position, users.get(i).getUserName(), users.get(i).getTotalPurchased(),
+            if (users.get(i).getTotalPurchased() > 0 || users.get(i).getTotalReceived() > 0) {
+                addToLeaderboardLayout(position, users.get(i).getUserName(), users.get(i).getTotalPurchased(),
                         User.getBalance(users.get(i).getTotalPurchased(), users.get(i).getTotalReceived()));
                 position++;
                 noDataToDisplay = false;
             }
         }
-        if(noDataToDisplay) {
+        if (noDataToDisplay) {
             TextView textView = new TextView(dataDisplay.getContext());
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -374,24 +389,158 @@ public class LedgerActivity extends AppCompatActivity {
         dataDisplayTitle.setText(title);
 
         Collections.sort(ledgerEntries);
+
+        boolean addToDataDisplay = false;
+        String buttonText = "";
+
         for (int i = 0; i < ledgerEntries.size(); i++) {
 
-            boolean addToDataDisplay = false;
-            String buttonText = "";
-
-            if(title.equals("Ledger")) {
+            if (title.equals("Ledger")) {
                 addToDataDisplay = !ledgerEntries.get(i).isDispute();
                 buttonText = "DISPUTE";
-            } else if(title.equals("Disputes")) {
+            } else if (title.equals("Disputes")) {
                 addToDataDisplay = ledgerEntries.get(i).isDispute();
                 buttonText = "RESTORE";
             }
 
-            if(addToDataDisplay) {
-                String dateTime = LedgerUtils.getDateTime(ledgerEntries.get(i).getOriginalTimestamp());
-                String purchaserUserName = getUserName(ledgerEntries.get(i).getPurchaserUserId());
-                String receiverUserName = getUserName(ledgerEntries.get(i).getRecipientUserId());
-                addToDataDisplay(ledgerEntries.get(i), purchaserUserName, receiverUserName, dateTime, buttonText);
+            if (addToDataDisplay) {
+
+                final int index = i;
+
+                TextView textView0 = new TextView(dataDisplay.getContext());
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                textView0.setText(getUserName(ledgerEntries.get(index).getPurchaserUserId()) + " -> " + getUserName(ledgerEntries.get(index).getRecipientUserId()));
+                textView0.setTextSize(18);
+                params.setMargins(50, 8, 0, 8);
+                textView0.setTextColor(Color.BLACK);
+                dataDisplay.addView(textView0, params);
+
+                LinearLayout linearLayout = new LinearLayout(dataDisplay.getContext());
+
+                final Button disputeButton = new Button(dataDisplay.getContext());
+                disputeButton.setText(buttonText);
+                disputeButton.setOnTouchListener(new View.OnTouchListener() {
+                    @Override
+                    public boolean onTouch(View v, MotionEvent event) {
+                        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+
+                            if (disputeButton.getText().equals("DISPUTE")) {
+
+                                AlertDialog.Builder builder = new AlertDialog.Builder(LedgerActivity.this);
+                                builder.setMessage("Are you sure you want to dispute this entry?");
+                                builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+
+                                        ledgerEntries.get(index).setDispute(true);
+
+                                        //TODO: Get server timestamp working for latestTimestamp
+                                        //Object latestTimestamp = ServerValue.TIMESTAMP;
+                                        Long latestTimestamp = Calendar.getInstance().getTimeInMillis();
+
+                                        ledgerEntries.get(index).setLatestTimestamp(latestTimestamp);
+                                        ledgerEntries.get(index).setDisputedByUserId("Unknown");
+                                        ledgerEntries.get(index).setDisputedByUserName("Unknown");
+                                        saveLedgerEntry(ledgerEntries.get(index));
+                                        setContentView(R.layout.activity_data_display);
+                                        showLedgerDetails();
+                                        calculateAllBalances();
+                                        saveBalances();
+                                        displayUserData();
+
+                                        dialog.dismiss();
+
+                                        int duration = Toast.LENGTH_SHORT;
+                                        Toast toast = Toast.makeText(getApplicationContext(), "Round removed from ledger", duration);
+                                        toast.show();
+                                        Thread thread = new Thread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                addToLedgerLocked = false;
+                                            }
+                                        });
+                                        thread.start();
+
+                                    }
+                                });
+                                builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        dialog.dismiss();
+                                    }
+                                });
+                                AlertDialog alert = builder.create();
+                                alert.show();
+
+                            } else if (disputeButton.getText().equals("RESTORE")) {
+
+                                AlertDialog.Builder builder = new AlertDialog.Builder(LedgerActivity.this);
+                                builder.setMessage("Are you sure you want to restore this entry?");
+                                builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+
+                                        ledgerEntries.get(index).setDispute(false);
+
+                                        //TODO: Get server timestamp working for latestTimestamp
+                                        //Object latestTimestamp = ServerValue.TIMESTAMP;
+                                        Long latestTimestamp = Calendar.getInstance().getTimeInMillis();
+
+                                        ledgerEntries.get(index).setLatestTimestamp(latestTimestamp);
+                                        ledgerEntries.get(index).setDisputedByUserId("Unknown");
+                                        ledgerEntries.get(index).setDisputedByUserName("Unknown");
+                                        saveLedgerEntry(ledgerEntries.get(index));
+                                        setContentView(R.layout.activity_data_display);
+                                        showDisputeDetails();
+                                        calculateAllBalances();
+                                        saveBalances();
+                                        displayUserData();
+
+                                        dialog.dismiss();
+
+                                        int duration = Toast.LENGTH_SHORT;
+                                        Toast toast = Toast.makeText(getApplicationContext(), "Round restored to ledger", duration);
+                                        toast.show();
+                                        Thread thread = new Thread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                addToLedgerLocked = false;
+                                            }
+                                        });
+                                        thread.start();
+
+                                    }
+                                });
+                                builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        dialog.dismiss();
+                                    }
+                                });
+                                AlertDialog alert = builder.create();
+                                alert.show();
+
+                            }
+                        }
+                        return false;
+                    }
+                });
+
+                LinearLayout.LayoutParams params1 = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                params1.gravity = Gravity.LEFT;
+                TextView textView1 = new TextView(dataDisplay.getContext());
+
+                if (disputeButton.getText().equals("DISPUTE")) {
+                    textView1.setText("Added by: " + ledgerEntries.get(index).getAddedByUserName().split(" ")[0] + "\n" + LedgerUtils.getDateTime(ledgerEntries.get(index).getOriginalTimestamp()));
+                } else if (disputeButton.getText().equals("RESTORE")) {
+                    textView1.setText("Disputed by: " + ledgerEntries.get(index).getDisputedByUserName().split(" ")[0] + "\n" + LedgerUtils.getDateTime(ledgerEntries.get(index).getOriginalTimestamp()));
+                }
+
+                textView1.setTextSize(17);
+                params1.setMargins(25, 8, 0, 16);
+                textView1.setTextColor(Color.DKGRAY);
+                linearLayout.addView(disputeButton, params1);
+                linearLayout.addView(textView1, params1);
+
+                dataDisplay.addView(linearLayout, params1);
             }
         }
     }
@@ -417,12 +566,12 @@ public class LedgerActivity extends AppCompatActivity {
     private List<User> getSpinnerArray(boolean reverseSort) {
         List<User> spinnerArray = new ArrayList<>();
         Collections.sort(users);
-        if(!reverseSort) {
+        if (!reverseSort) {
             for (int i = 0; i < users.size(); i++) {
                 spinnerArray.add(users.get(i));
             }
         } else {
-            for (int i = users.size()-1; i >= 0; i--) {
+            for (int i = users.size() - 1; i >= 0; i--) {
                 spinnerArray.add(users.get(i));
             }
         }
@@ -455,7 +604,7 @@ public class LedgerActivity extends AppCompatActivity {
         debtList.addView(textView, params);
     }
 
-    private void addToCreditScoreLayout(int position, String userName, int totalPurchased, int balance) {
+    private void addToLeaderboardLayout(int position, String userName, int totalPurchased, int balance) {
 
         TextView textView0 = new TextView(dataDisplay.getContext());
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
@@ -480,11 +629,11 @@ public class LedgerActivity extends AppCompatActivity {
         LinearLayout.LayoutParams params2 = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         params2.gravity = Gravity.LEFT;
-        if(balance < 0) {
+        if (balance < 0) {
             textView2.setText("User is owed:  " + (balance * -1));
-        } else if(balance > 0) {
+        } else if (balance > 0) {
             textView2.setText("User owes:  " + balance);
-        } else if(balance == 0) {
+        } else if (balance == 0) {
             textView2.setText("User is balanced");
         }
         textView2.setTextSize(18);
@@ -493,170 +642,12 @@ public class LedgerActivity extends AppCompatActivity {
         dataDisplay.addView(textView2, params2);
     }
 
-    private void addToDataDisplay(final LedgerEntry ledgerEntry,
-                                  final String purchaserUserName,
-                                  String receiverUserName,
-                                  final String timestamp,
-                                  String buttonText) {
-
-        TextView textView0 = new TextView(dataDisplay.getContext());
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        textView0.setText(purchaserUserName + " -> " +receiverUserName);
-        textView0.setTextSize(18);
-        params.setMargins(50, 8, 0, 8);
-        textView0.setTextColor(Color.BLACK);
-        dataDisplay.addView(textView0, params);
-
-        LinearLayout linearLayout = new LinearLayout(dataDisplay.getContext());
-
-        final Button disputeButton = new Button(dataDisplay.getContext());
-        disputeButton.setText(buttonText);
-        disputeButton.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                    for (int i = 0; i < ledgerEntries.size(); i++) {
-                        if(ledgerEntries.get(i).getKey().equals(ledgerEntry.getKey())) {
-
-                            final int index = i;
-
-                            if(disputeButton.getText().equals("DISPUTE")) {
-
-                                AlertDialog.Builder builder = new AlertDialog.Builder(LedgerActivity.this);
-                                builder.setMessage("Are you sure you want to dispute this entry?");
-                                builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                                    public void onClick(DialogInterface dialog, int id) {
-
-                                        ledgerEntries.get(index).setDispute(true);
-
-                                        //TODO: Get server timestamp working for latestTimestamp
-                                        //Object latestTimestamp = ServerValue.TIMESTAMP;
-                                        Long latestTimestamp = Calendar.getInstance().getTimeInMillis();
-
-                                        ledgerEntries.get(index).setLatestTimestamp(latestTimestamp);
-                                        ledgerEntries.get(index).setDisputedByUserId("Unknown");
-                                        ledgerEntries.get(index).setDisputedByUserName("Unknown");
-                                        saveLedgerEntry(ledgerEntries.get(index));
-                                        setContentView(R.layout.activity_data_display);
-                                        showLedgerDetails();
-                                        calculateAllBalances();
-                                        saveBalances();
-                                        displayUserData();
-
-                                        dialog.dismiss();
-
-                                        int duration = Toast.LENGTH_SHORT;
-                                        Toast toast = Toast.makeText(getApplicationContext(), "Round removed from ledger", duration);
-                                        toast.show();
-                                        Thread thread = new Thread(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                try {
-                                                    Thread.sleep(1500);
-                                                } catch (InterruptedException e) {
-                                                }
-                                                addToLedgerLocked = false;
-                                            }
-                                        });
-                                        thread.start();
-
-                                    }
-                                });
-                                builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
-                                    public void onClick(DialogInterface dialog, int id) {
-                                        dialog.dismiss();
-                                    }
-                                });
-                                AlertDialog alert = builder.create();
-                                alert.show();
-
-                            } else if(disputeButton.getText().equals("RESTORE")) {
-
-                                AlertDialog.Builder builder = new AlertDialog.Builder(LedgerActivity.this);
-                                builder.setMessage("Are you sure you want to restore this entry?");
-                                builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                                    public void onClick(DialogInterface dialog, int id) {
-
-                                        ledgerEntries.get(index).setDispute(false);
-
-                                        //TODO: Get server timestamp working for latestTimestamp
-                                        //Object latestTimestamp = ServerValue.TIMESTAMP;
-                                        Long latestTimestamp = Calendar.getInstance().getTimeInMillis();
-
-                                        ledgerEntries.get(index).setLatestTimestamp(latestTimestamp);
-                                        ledgerEntries.get(index).setDisputedByUserId("Unknown");
-                                        ledgerEntries.get(index).setDisputedByUserName("Unknown");
-                                        saveLedgerEntry(ledgerEntries.get(index));
-                                        setContentView(R.layout.activity_data_display);
-                                        showDisputeDetails();
-                                        calculateAllBalances();
-                                        saveBalances();
-                                        displayUserData();
-
-                                        dialog.dismiss();
-
-                                        int duration = Toast.LENGTH_SHORT;
-                                        Toast toast = Toast.makeText(getApplicationContext(), "Round restored to ledger", duration);
-                                        toast.show();
-                                        Thread thread = new Thread(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                try {
-                                                    Thread.sleep(1500);
-                                                } catch (InterruptedException e) {
-                                                }
-                                                addToLedgerLocked = false;
-                                            }
-                                        });
-                                        thread.start();
-
-                                    }
-                                });
-                                builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
-                                    public void onClick(DialogInterface dialog, int id) {
-                                        dialog.dismiss();
-                                    }
-                                });
-                                AlertDialog alert = builder.create();
-                                alert.show();
-
-                            }
-
-                            break;
-                        }
-                    }
-                }
-                return false;
-            }
-        });
-
-        LinearLayout.LayoutParams params1 = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        params1.gravity = Gravity.LEFT;
-        TextView textView1 = new TextView(dataDisplay.getContext());
-
-        if(disputeButton.getText().equals("DISPUTE")) {
-            textView1.setText("Added by: "+ledgerEntry.getAddedByUserName().split(" ")[0]+"\n"+timestamp);
-        } else if(disputeButton.getText().equals("RESTORE")) {
-            textView1.setText("Disputed by: "+ledgerEntry.getDisputedByUserName().split(" ")[0]+"\n"+timestamp);
-        }
-
-        textView1.setTextSize(17);
-        params1.setMargins(25, 8, 0, 24);
-        textView1.setTextColor(Color.DKGRAY);
-        linearLayout.addView(disputeButton, params1);
-        linearLayout.addView(textView1, params1);
-
-        dataDisplay.addView(linearLayout, params1);
-    }
-
     private void updateUserBalance(String userId, int balanceAdjust) {
         for (int i = 0; i < users.size(); i++) {
             if (users.get(i).getUserId().equals(userId)) {
-                if(balanceAdjust > 0) {
+                if (balanceAdjust > 0) {
                     users.get(i).setTotalReceived(users.get(i).getTotalReceived() + 1);
-                } else if(balanceAdjust < 0) {
+                } else if (balanceAdjust < 0) {
                     users.get(i).setTotalPurchased(users.get(i).getTotalPurchased() + 1);
                 }
                 break;
@@ -687,17 +678,17 @@ public class LedgerActivity extends AppCompatActivity {
                         ((ViewGroup) progressBar.getParent())
                                 .removeView(progressBar);
                     }
-                } catch(Exception ex) {
+                } catch (Exception ex) {
                 }
 
                 boolean addUser = true;
                 for (int i = 0; i < users.size(); i++) {
-                    if(users.get(i).getUserId().equals(userFromDb.getUserId())) {
+                    if (users.get(i).getUserId().equals(userFromDb.getUserId())) {
                         addUser = false;
                         break;
                     }
                 }
-                if(addUser) {
+                if (addUser) {
                     users.add(userFromDb);
                 }
 
@@ -710,11 +701,12 @@ public class LedgerActivity extends AppCompatActivity {
 
                 displayUserData();
             }
+
             @Override
             public void onChildChanged(DataSnapshot dataSnapshot, String prevChildKey) {
                 User userFromDb = dataSnapshot.getValue(User.class);
                 for (int i = 0; i < users.size(); i++) {
-                    if(users.get(i).getUserId().equals(userFromDb.getUserId())) {
+                    if (users.get(i).getUserId().equals(userFromDb.getUserId())) {
                         users.get(i).setTotalPurchased(userFromDb.getTotalPurchased());
                         users.get(i).setTotalReceived(userFromDb.getTotalReceived());
                         break;
@@ -722,12 +714,15 @@ public class LedgerActivity extends AppCompatActivity {
                 }
                 displayUserData();
             }
+
             @Override
             public void onChildRemoved(DataSnapshot dataSnapshot) {
             }
+
             @Override
             public void onChildMoved(DataSnapshot dataSnapshot, String prevChildKey) {
             }
+
             @Override
             public void onCancelled(DatabaseError databaseError) {
             }
@@ -743,17 +738,17 @@ public class LedgerActivity extends AppCompatActivity {
                         ((ViewGroup) progressBar.getParent())
                                 .removeView(progressBar);
                     }
-                } catch(Exception ex) {
+                } catch (Exception ex) {
                 }
 
                 boolean addLedgerEntry = true;
                 for (int i = 0; i < ledgerEntries.size(); i++) {
-                    if(ledgerEntries.get(i).getKey().equals(ledgerEntryFromDb.getKey())) {
+                    if (ledgerEntries.get(i).getKey().equals(ledgerEntryFromDb.getKey())) {
                         addLedgerEntry = false;
                         break;
                     }
                 }
-                if(addLedgerEntry) {
+                if (addLedgerEntry) {
                     ledgerEntries.add(ledgerEntryFromDb);
                 }
 
@@ -762,11 +757,12 @@ public class LedgerActivity extends AppCompatActivity {
                 } catch (Exception ex) {
                 }
             }
+
             @Override
             public void onChildChanged(DataSnapshot dataSnapshot, String prevChildKey) {
                 LedgerEntry ledgerEntryFromDb = dataSnapshot.getValue(LedgerEntry.class);
                 for (int i = 0; i < ledgerEntries.size(); i++) {
-                    if(ledgerEntries.get(i).getKey().equals(ledgerEntryFromDb.getKey())) {
+                    if (ledgerEntries.get(i).getKey().equals(ledgerEntryFromDb.getKey())) {
                         ledgerEntries.get(i).setDispute(ledgerEntryFromDb.isDispute());
                         ledgerEntries.get(i).setLatestTimestamp(ledgerEntryFromDb.getLatestTimestamp());
                         ledgerEntries.get(i).setDisputedByUserId(ledgerEntryFromDb.getDisputedByUserId());
@@ -779,12 +775,15 @@ public class LedgerActivity extends AppCompatActivity {
                 } catch (Exception ex) {
                 }
             }
+
             @Override
             public void onChildRemoved(DataSnapshot dataSnapshot) {
             }
+
             @Override
             public void onChildMoved(DataSnapshot dataSnapshot, String prevChildKey) {
             }
+
             @Override
             public void onCancelled(DatabaseError databaseError) {
             }
@@ -799,7 +798,7 @@ public class LedgerActivity extends AppCompatActivity {
 
     private String getUserName(String userId) {
         for (int i = 0; i < users.size(); i++) {
-            if(users.get(i).getUserId().equals(userId)) {
+            if (users.get(i).getUserId().equals(userId)) {
                 return users.get(i).getUserName();
             }
         }

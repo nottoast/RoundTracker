@@ -12,11 +12,9 @@
             android:name=".application.LedgerActivity"
             android:label="@string/title_activity_round_tracker"
             android:launchMode="singleInstance"
-            android:theme="@style/RoundTrackerTheme">
-
-        </activity>
+            android:theme="@style/RoundTrackerTheme"></activity>
         <activity
-            android:name=".application.LedgersActivity"
+            android:name=".application.LedgerListActivity"
             android:label="@string/title_activity_round_tracker"
             android:launchMode="singleInstance"
             android:theme="@style/RoundTrackerTheme">
