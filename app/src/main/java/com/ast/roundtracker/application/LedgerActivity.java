@@ -6,7 +6,10 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -76,6 +79,7 @@ public class LedgerActivity extends AppCompatActivity {
 
         users = new ArrayList<>();
         usersTable = database.getReference("ledgers/" + currentLedger + "/users");
+
         ledgerEntries = new ArrayList();
         ledgerEntriesTable = database.getReference("ledgers/" + currentLedger + "/ledger");
 
@@ -140,6 +144,9 @@ public class LedgerActivity extends AppCompatActivity {
 
             Intent intent = new Intent(getApplicationContext(), LedgerListActivity.class);
             startActivity(intent);
+
+            this.finish();
+
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -804,5 +811,17 @@ public class LedgerActivity extends AppCompatActivity {
         }
         return "Unknown";
     }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        SharedPreferences settings = getSharedPreferences("round_tracker_prefs", 0);
+        SharedPreferences.Editor editor = settings.edit();
+        editor.clear();
+        editor.putString("current_ledger_status", "closed");
+        editor.commit();
+        this.finish();
+    }
+
 
 }

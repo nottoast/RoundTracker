@@ -1,8 +1,11 @@
 package com.ast.roundtracker.model;
 
+import com.google.firebase.database.Exclude;
 import com.google.firebase.database.IgnoreExtraProperties;
 
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 
 @IgnoreExtraProperties
 public class User implements Comparable {
@@ -34,6 +37,10 @@ public class User implements Comparable {
         return userId;
     }
 
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
     public int getBalance() {
         return totalReceived - totalPurchased;
     }
@@ -56,6 +63,16 @@ public class User implements Comparable {
 
     public static Integer getBalance(int totalPurchased, int totalReceived) {
         return totalReceived - totalPurchased;
+    }
+
+    @Exclude
+    public Map<String, Object> toMap() {
+        HashMap<String, Object> result = new HashMap<>();
+        result.put("userId", userId);
+        result.put("userName", userName);
+        result.put("totalPurchased", totalPurchased);
+        result.put("totalReceived", totalReceived);
+        return result;
     }
 
     @Override
