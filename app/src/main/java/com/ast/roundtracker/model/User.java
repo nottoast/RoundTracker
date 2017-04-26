@@ -12,17 +12,19 @@ public class User implements Comparable {
 
     private String userName;
     private String userId;
+    private String linkedUserId;
     private int totalPurchased;
     private int totalReceived;
 
     public User() {
     }
 
-    public User(String userName, String userId, int totalPurchased, int totalReceived) {
+    public User(String userName, String userId, int totalPurchased, int totalReceived, String linkedUserId) {
         this.userName = userName;
         this.userId = userId;
         this.totalPurchased = totalPurchased;
         this.totalReceived = totalReceived;
+        this.linkedUserId = linkedUserId;
     }
 
     public String getUserName() {
@@ -61,6 +63,14 @@ public class User implements Comparable {
         this.totalReceived = totalReceived;
     }
 
+    public String getLinkedUserId() {
+        return linkedUserId;
+    }
+
+    public void setLinkedUserId(String linkedUserId) {
+        this.linkedUserId = linkedUserId;
+    }
+
     public static Integer getBalance(int totalPurchased, int totalReceived) {
         return totalReceived - totalPurchased;
     }
@@ -70,6 +80,7 @@ public class User implements Comparable {
         HashMap<String, Object> result = new HashMap<>();
         result.put("userId", userId);
         result.put("userName", userName);
+        result.put("linkedUserId", linkedUserId);
         result.put("totalPurchased", totalPurchased);
         result.put("totalReceived", totalReceived);
         return result;

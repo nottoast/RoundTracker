@@ -1,7 +1,7 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context="com.ast.roundtracker.application.LedgerActivity">
+    tools:context="com.ast.roundtracker.application.activities.LedgerActivity">
     <item
         android:id="@+id/action_round_tracker"
         android:orderInCategory="100"

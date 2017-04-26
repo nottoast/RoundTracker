@@ -1,4 +1,4 @@
-package com.ast.roundtracker.application;
+package com.ast.roundtracker.application.activities;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -15,6 +15,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.ast.roundtracker.R;
+import com.ast.roundtracker.application.LedgerUtils;
 import com.ast.roundtracker.model.Ledger;
 import com.ast.roundtracker.model.LedgerUser;
 import com.ast.roundtracker.model.User;
@@ -28,7 +29,6 @@ import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -45,7 +45,6 @@ public class LedgerListActivity extends AppCompatActivity {
 
     private List<Ledger> ledgers;
     private DatabaseReference ledgersTable;
-    //private ChildEventListener ledgersEventListener;
 
     private LinearLayout ledgersLayout;
     private Button joinLedger;
@@ -53,16 +52,15 @@ public class LedgerListActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
         SharedPreferences preferences = getSharedPreferences("round_tracker_prefs", 0);
         String currentLedgerStatus = preferences.getString("current_ledger_status", "closed");
         if(currentLedgerStatus.equals("open")) {
             Intent intent = new Intent(getApplicationContext(), LedgerActivity.class);
             startActivity(intent);
+            this.finish();
         }
-
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_ledgers);
 
         //TODO: Sort out userId with authentication
         ledgerUsers = new ArrayList<>();
@@ -71,26 +69,27 @@ public class LedgerListActivity extends AppCompatActivity {
         ledgers = new ArrayList<>();
         ledgersTable = database.getReference("ledgers");
 
+        setContentView(R.layout.activity_ledger_list);
         addDbListeners();
-        showLedgers();
+        showLedgerList();
 
     }
 
     @Override
     protected void onResume() {
+        super.onResume();
 
         SharedPreferences preferences = getSharedPreferences("round_tracker_prefs", 0);
         String currentLedgerStatus = preferences.getString("current_ledger_status", "closed");
         if(currentLedgerStatus.equals("open")) {
             Intent intent = new Intent(getApplicationContext(), LedgerActivity.class);
             startActivity(intent);
+            this.finish();
         }
 
-        super.onResume();
-
+        setContentView(R.layout.activity_ledger_list);
         addDbListeners();
-        setContentView(R.layout.activity_ledgers);
-        showLedgers();
+        showLedgerList();
     }
 
     @Override
@@ -99,7 +98,7 @@ public class LedgerListActivity extends AppCompatActivity {
         removeDbListeners();
     }
 
-    public void addListeners() {
+    public void addLedgerListListeners() {
 
         joinLedger.setOnTouchListener(new View.OnTouchListener() {
             @Override
@@ -145,6 +144,7 @@ public class LedgerListActivity extends AppCompatActivity {
                     DatabaseReference usersTable = database.getReference("ledgers/" + ledgerId + "/users");
                     User user = new User();
                     user.setUserId("u01");
+                    user.setLinkedUserId("u01");
                     user.setUserName("unknown");
                     user.setTotalPurchased(0);
                     user.setTotalReceived(0);
@@ -159,13 +159,24 @@ public class LedgerListActivity extends AppCompatActivity {
         });
     }
 
-    private void showLedgers() {
-        findLedgersScreenElements();
-        addListeners();
+    private void showLedgerList() {
+        findLedgerListScreenElements();
+        addLedgerListListeners();
         displayLedgersData();
     }
 
-    private void findLedgersScreenElements() {
+    private void showEditLedger() {
+        findEditLedgerScreenElements();
+
+    }
+
+    private void findLedgerListScreenElements() {
+        ledgersLayout = (LinearLayout) findViewById(R.id.ledgers_layout);
+        createLedger = (Button) findViewById(R.id.create_ledger_button);
+        joinLedger = (Button) findViewById(R.id.join_ledger_button);
+    }
+
+    private void findEditLedgerScreenElements() {
         ledgersLayout = (LinearLayout) findViewById(R.id.ledgers_layout);
         createLedger = (Button) findViewById(R.id.create_ledger_button);
         joinLedger = (Button) findViewById(R.id.join_ledger_button);
@@ -286,8 +297,6 @@ public class LedgerListActivity extends AppCompatActivity {
             textView.setText(ledgers.get(i).getLedgerName());
             textView.setTextSize(22);
             params.setMargins(25, 15, 0, 15);
-            //int colourInt = Color.parseColor("#CC3E16");
-            //textView.setTextColor(colourInt);
             ledgersLayout.addView(textView, params);
 
 
@@ -297,9 +306,9 @@ public class LedgerListActivity extends AppCompatActivity {
                     LinearLayout.LayoutParams.WRAP_CONTENT);
             params1.gravity = Gravity.LEFT;
 
-            final Button addUsersButton = new Button(ledgersLayout.getContext());
-            addUsersButton.setText("Add users");
-            addUsersButton.setOnTouchListener(new View.OnTouchListener() {
+            final Button deleteMenuButton = new Button(ledgersLayout.getContext());
+            deleteMenuButton.setText("Delete");
+            deleteMenuButton.setOnTouchListener(new View.OnTouchListener() {
                 @Override
                 public boolean onTouch(View v, MotionEvent event) {
                     if (event.getAction() == KeyEvent.ACTION_DOWN) {
@@ -308,11 +317,24 @@ public class LedgerListActivity extends AppCompatActivity {
                     return false;
                 }
             });
-            linearLayout.addView(addUsersButton, params1);
+            linearLayout.addView(deleteMenuButton, params1);
 
-            final Button shareButton = new Button(ledgersLayout.getContext());
-            shareButton.setText("Invite");
-            shareButton.setOnTouchListener(new View.OnTouchListener() {
+            final Button editMenuButton = new Button(ledgersLayout.getContext());
+            editMenuButton.setText("Edit");
+            editMenuButton.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    if (event.getAction() == KeyEvent.ACTION_DOWN) {
+
+                    }
+                    return false;
+                }
+            });
+            linearLayout.addView(editMenuButton, params1);
+
+            final Button shareMenuButton = new Button(ledgersLayout.getContext());
+            shareMenuButton.setText("Invite");
+            shareMenuButton.setOnTouchListener(new View.OnTouchListener() {
                 @Override
                 public boolean onTouch(View v, MotionEvent event) {
                     if (event.getAction() == KeyEvent.ACTION_DOWN) {
@@ -334,11 +356,11 @@ public class LedgerListActivity extends AppCompatActivity {
                     return false;
                 }
             });
-            linearLayout.addView(shareButton, params1);
+            linearLayout.addView(shareMenuButton, params1);
 
-            final Button useButton = new Button(ledgersLayout.getContext());
-            useButton.setText("Use");
-            useButton.setOnTouchListener(new View.OnTouchListener() {
+            final Button useMenuButton = new Button(ledgersLayout.getContext());
+            useMenuButton.setText("Use");
+            useMenuButton.setOnTouchListener(new View.OnTouchListener() {
                 @Override
                 public boolean onTouch(View v, MotionEvent event) {
                     if (event.getAction() == KeyEvent.ACTION_DOWN) {
@@ -357,7 +379,7 @@ public class LedgerListActivity extends AppCompatActivity {
                     return false;
                 }
             });
-            linearLayout.addView(useButton, params1);
+            linearLayout.addView(useMenuButton, params1);
 
             ledgersLayout.addView(linearLayout, params1);
 

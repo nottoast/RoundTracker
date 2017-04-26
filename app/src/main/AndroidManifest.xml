@@ -9,12 +9,12 @@
         android:supportsRtl="true"
         android:theme="@style/RoundTrackerTheme">
         <activity
-            android:name=".application.LedgerActivity"
+            android:name=".application.activities.LedgerActivity"
             android:label="@string/title_activity_round_tracker"
             android:launchMode="singleInstance"
-            android:theme="@style/RoundTrackerTheme"></activity>
+            android:theme="@style/RoundTrackerTheme" />
         <activity
-            android:name=".application.LedgerListActivity"
+            android:name=".application.activities.LedgerListActivity"
             android:label="@string/title_activity_round_tracker"
             android:launchMode="singleInstance"
             android:theme="@style/RoundTrackerTheme">
@@ -24,6 +24,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".application.activities.LoginActivity"></activity>
     </application>
 
 </manifest>

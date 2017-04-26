@@ -1,4 +1,4 @@
-package com.ast.roundtracker.application;
+package com.ast.roundtracker.application.activities;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -6,10 +6,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.support.v4.view.GravityCompat;
-import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -26,6 +23,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.ast.roundtracker.R;
+import com.ast.roundtracker.application.LedgerUtils;
 import com.ast.roundtracker.model.LedgerEntry;
 import com.ast.roundtracker.model.User;
 import com.google.firebase.database.ChildEventListener;
@@ -54,8 +52,6 @@ public class LedgerActivity extends AppCompatActivity {
     private DatabaseReference ledgerEntriesTable;
     private ChildEventListener ledgerEntriesEventListener;
 
-    private static boolean addToLedgerLocked = false;
-
     private LinearLayout creditList;
     private LinearLayout debtList;
     private LinearLayout dataDisplay;
@@ -69,8 +65,8 @@ public class LedgerActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_ledger);
 
         //TODO: Change the default ledger to sandbox or something similar
         SharedPreferences preferences = getSharedPreferences("round_tracker_prefs", 0);
@@ -83,6 +79,7 @@ public class LedgerActivity extends AppCompatActivity {
         ledgerEntries = new ArrayList();
         ledgerEntriesTable = database.getReference("ledgers/" + currentLedger + "/ledger");
 
+        setContentView(R.layout.activity_ledger);
         addDbListeners();
         showLedger();
 
@@ -91,8 +88,9 @@ public class LedgerActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        addDbListeners();
+
         setContentView(R.layout.activity_ledger);
+        addDbListeners();
         showLedger();
     }
 
@@ -196,9 +194,9 @@ public class LedgerActivity extends AppCompatActivity {
         addToLedgerButton.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                if (event.getAction() == KeyEvent.ACTION_DOWN && !addToLedgerLocked) {
+                if (event.getAction() == KeyEvent.ACTION_DOWN) {
 
-                    addToLedgerLocked = true;
+                    //addToLedgerLocked = true;
 
                     final String purchaserId = ((User) purchaserSelector.getSelectedItem()).getUserId();
                     final String recipientId = ((User) recipientSelector.getSelectedItem()).getUserId();
@@ -242,19 +240,11 @@ public class LedgerActivity extends AppCompatActivity {
                                 int duration = Toast.LENGTH_SHORT;
                                 Toast toast = Toast.makeText(getApplicationContext(), "Round added to ledger", duration);
                                 toast.show();
-                                Thread thread = new Thread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        addToLedgerLocked = false;
-                                    }
-                                });
-                                thread.start();
 
                             }
                         });
                         builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
-                                addToLedgerLocked = false;
                                 dialog.dismiss();
                             }
                         });
@@ -460,13 +450,6 @@ public class LedgerActivity extends AppCompatActivity {
                                         int duration = Toast.LENGTH_SHORT;
                                         Toast toast = Toast.makeText(getApplicationContext(), "Round removed from ledger", duration);
                                         toast.show();
-                                        Thread thread = new Thread(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                addToLedgerLocked = false;
-                                            }
-                                        });
-                                        thread.start();
 
                                     }
                                 });
@@ -506,13 +489,6 @@ public class LedgerActivity extends AppCompatActivity {
                                         int duration = Toast.LENGTH_SHORT;
                                         Toast toast = Toast.makeText(getApplicationContext(), "Round restored to ledger", duration);
                                         toast.show();
-                                        Thread thread = new Thread(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                addToLedgerLocked = false;
-                                            }
-                                        });
-                                        thread.start();
 
                                     }
                                 });

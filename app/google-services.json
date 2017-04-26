@@ -10,12 +10,56 @@
       "client_info": {
         "mobilesdk_app_id": "1:1023246976993:android:5d0986dbe7a84abf",
         "android_client_info": {
-          "package_name": "com.ast.roundtracker"
+          "package_name": "com.ast.roundtracker.roundtracker"
         }
       },
       "oauth_client": [
         {
           "client_id": "1023246976993-9ohsbeh4f9plbec5i1meprh7i1rvfpos.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ast.roundtracker.roundtracker",
+            "certificate_hash": "9a7075350b8baf6873d9f4f183c20ce26416f1bd"
+          }
+        },
+        {
+          "client_id": "1023246976993-a75a9j41830afl336mkpustg5uh0dlf7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBESnKkEYoN3r4wOdTNZ43ll_6JDHr-9ws"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1023246976993-a75a9j41830afl336mkpustg5uh0dlf7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1023246976993:android:900cbfb9c2149177",
+        "android_client_info": {
+          "package_name": "com.ast.roundtracker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1023246976993-8ienl97qddmhpivomraciu563c8pek1h.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.ast.roundtracker",
